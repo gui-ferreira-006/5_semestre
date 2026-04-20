@@ -1,149 +1,236 @@
 package gui;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.io.File;
 
 public class TelaMonitoramentoIA extends JFrame {
-    
+
     // Componentes da Interface
-    private JTextArea areaChat;
+    private JTextArea areaLogEventos;
     private JTextField campoMensagem;
-    private JButton botaoEnviar;
-    private JButton botaoExportarRelatorio;
+    private JButton botaoEmitirAlerta;
+    private JButton botaoAnexarDocumento;
+    private JList<String> listaInspetores;
 
-    // Paleta de Cores (Estilo Centro de Operações)
-    private Color corFundoEscuro = new Color(30, 34, 40); // Cinza chumbo escuro
-    private Color corTextoConsole = new Color(74, 255, 126); // Verde néon
-    private Color corAlerta = new Color(255, 87, 87); // Vermelho para alertas de IA
-    private Color corFundoComponentes = new Color(45, 50, 58);
+    // Paleta de Cores Moderna (Dark/Tech Theme)
+    private Color corBarraLateral = new Color(15, 20, 25);
+    private Color corFundoLogSolido = new Color(25, 30, 35); // Agora a cor é sólida para legibilidade
+    private Color corTextoVerde = new Color(74, 255, 126);
+    private Color corBotaoAcao = new Color(41, 128, 185);
+    private Color corBotaoArquivo = new Color(192, 57, 43);
+    private String placeholderText = " Escreva uma mensagem de alerta...";
 
-    public TelaMonitoramentoIA () {
-
-        // 1. Configurações Básicas da Janela (JFrame)
-        setTitle("Centro de Operações Ambientais - IA");
-        setSize(800, 600);
+    public TelaMonitoramentoIA() {
+        // 1. Configurações Base do JFrame
+        setTitle("Dashboard - Monitoramento Ambiental via IA");
+        setSize(1000, 650);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); // Centraliza na tela
-        setLayout(new BorderLayout(10, 10)); // Margens entre as águas
-        getContentPane().setBackground(corFundoEscuro); // Fundo da janela
+        setLocationRelativeTo(null);
 
-        // 2. Título da Aplicação (Topo)
-        JLabel labelTitulo = new JLabel(" SISTEMA DE MONITORAMENTO AMBIENTAL - REDE NEURAL ATIVA", JLabel.CENTER);
-        labelTitulo.setForeground(Color.WHITE);
-        labelTitulo.setFont(new Font("Monospaced", Font.BOLD, 18));
-        labelTitulo.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
-        add(labelTitulo, BorderLayout.NORTH);
+        // Em vez de um fundo padrão, usamos um painel customizado para a imagem de fundo
+        PainelComFundo painelPrincipal = new PainelComFundo();
+        painelPrincipal.setLayout(new BorderLayout(15, 15));
+        painelPrincipal.setBorder(new EmptyBorder(10, 10, 10, 10));
+        setContentPane(painelPrincipal);
 
-        // 3. Área Central (O Chat / Log de Eventos)
-        areaChat = new JTextArea();
-        areaChat.setEditable(false);
-        areaChat.setBackground(corFundoComponentes);
-        areaChat.setForeground(corTextoConsole);
-        areaChat.setFont(new Font("Monospaced", Font.PLAIN, 14));
-        areaChat.setMargin(new Insets(10, 10, 10, 10));
+        // 2. Montando a Barra Lateral (Sidebar)
+        configurarBarraLateral(painelPrincipal);
 
+        // 3. Montando a Área Central (O Log e os Controles)
+        configurarAreaCentral(painelPrincipal);
 
-        // Adiciona barra de rolagem ao chat
-        JScrollPane scrollChat = new JScrollPane(areaChat);
-        scrollChat.setBorder(BorderFactory.createLineBorder(corAlerta, 1)); // Borda vermelha pra dar um tom crítico
-        add(scrollChat, BorderLayout.CENTER);
-
-        // 4. Painel Inferior (Entrada de Dados e Botões)
-        JPanel painelInferior = new JPanel();
-        painelInferior.setLayout(new BorderLayout(10, 0));
-        painelInferior.setBackground(corFundoEscuro);
-        painelInferior.setBorder(BorderFactory.createEmptyBorder(10, 15, 15, 15));
-
-        // Campo onde o usuário digita
-        campoMensagem = new JTextField();
-        campoMensagem.setBackground(corFundoComponentes);
-        campoMensagem.setForeground(Color.WHITE);
-        campoMensagem.setCaretColor(Color.WHITE); // Cor do cursor piscando
-        campoMensagem.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        painelInferior.add(campoMensagem, BorderLayout.CENTER);
-
-        // Painel para organizar os botões lado a lado
-        JPanel painelBotoes = new JPanel(new GridLayout(1, 2, 10, 0));
-        painelBotoes.setBackground(corFundoEscuro);
-
-        // Botão de Enviar Mensagem
-        botaoEnviar = new JButton("Transmitir Alerta");
-        botaoEnviar.setBackground(corTextoConsole);
-        botaoEnviar.setForeground(corFundoEscuro);
-        botaoEnviar.setFocusPainted(false);
-        painelBotoes.add(botaoEnviar);
-
-        // Botão de Transferir Arquivo (O que terá compressão GZIP depois)
-        botaoExportarRelatorio = new JButton("Exportar Relatório (PDF");
-        botaoExportarRelatorio.setBackground(corAlerta);
-        botaoExportarRelatorio.setForeground(Color.blue);
-        botaoExportarRelatorio.setFocusPainted(false);
-        painelBotoes.add(botaoExportarRelatorio);
-
-        painelInferior.add(painelBotoes, BorderLayout.EAST);
-        add(painelInferior, BorderLayout.SOUTH);
-
-        // 5. Ações do Botões (Dados Mocados para Teste)
+        // 4. Configurar eventos (Cliques falsos por enquanto)
         configurarAcoes();
 
-        // Mensagem de boas-vindas falsa
-        areaChat.append("[SISTEMA] Conexão estabelecida com a base de dados.\n");
-        areaChat.append("[IA-CORE] Monitoramento ambiental iniciado. Aguardando dados...\n\n");
+        // Simulando a inicialização do sistema
+        imprimirLogSistemico("Inicializando protocolo de comunicação M2M...");
+        imprimirLogSistemico("Conectado ao Servidor Central. Criptografia ativa.");
+    }
+
+    private void configurarBarraLateral(JPanel painelPrincipal) {
+        JPanel barraLateral = new JPanel(new BorderLayout());
+        barraLateral.setBackground(corBarraLateral);
+        barraLateral.setPreferredSize(new Dimension(220, 0));
+
+        // Título da Sidebar
+        JLabel labelStatus = new JLabel("ESTAÇÕES ATIVAS", SwingConstants.CENTER);
+        labelStatus.setForeground(Color.WHITE);
+        labelStatus.setFont(new Font("SansSerif", Font.BOLD, 14));
+        labelStatus.setBorder(new EmptyBorder(15, 0, 15, 0));
+        barraLateral.add(labelStatus, BorderLayout.NORTH);
+
+        // Lista de Usuários Online (Fictício por enquanto)
+        String[]usuarios = {">>>[Você] Base Sul", ">>>Drone de Inspeção 01", ">>>Central de IA", ">>>Fiscalização Móvel"};
+        listaInspetores = new JList<>(usuarios);
+        listaInspetores.setBackground(corBarraLateral);
+        listaInspetores.setForeground(new Color(150, 160, 170));
+
+        // Bordas e scroll para a lista
+        JScrollPane scrollLista = new JScrollPane(listaInspetores);
+        scrollLista.setBorder(new EmptyBorder(0, 10, 10 ,10));
+        scrollLista.getViewport().setBackground(corBarraLateral);
+        barraLateral.add(scrollLista, BorderLayout.CENTER);
+
+        painelPrincipal.add(barraLateral, BorderLayout.WEST);
+    }
+
+    private void configurarAreaCentral(JPanel painelPrincipal) {
+        JPanel painelCentral = new JPanel(new BorderLayout(10, 10));
+        painelCentral.setOpaque(false); // Transparente para ver o fundo
+
+        // A. O "Rádio" (Log de Eventos)
+        areaLogEventos = new JTextArea();
+        areaLogEventos.setEditable(false);
+        areaLogEventos.setBackground(corFundoLogSolido);
+        areaLogEventos.setForeground(corTextoVerde);
+        areaLogEventos.setFont(new Font("Consolas", Font.PLAIN, 14));
+        areaLogEventos.setMargin(new Insets(15, 15, 15, 15));
+
+        JScrollPane scrollChat = new JScrollPane(areaLogEventos);
+        scrollChat.setBorder(BorderFactory.createLineBorder(new Color(60, 70, 80), 1));
+        painelCentral.add(scrollChat, BorderLayout.CENTER);
+
+        // B. Os Controles (Rodapé)
+        JPanel painelRodape = new JPanel(new BorderLayout(10, 0));
+        painelRodape.setOpaque(false);
+        painelRodape.setBorder(new EmptyBorder(10, 0, 10, 0));
+
+        campoMensagem = new JTextField(placeholderText);
+        campoMensagem.setBackground(new Color(45, 50, 60));
+        campoMensagem.setForeground(Color.GRAY);
+        campoMensagem.setFont(new Font("SansSerif", Font.ITALIC, 14));
+        campoMensagem.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(80, 90, 100)),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+
+        // Lógica de Placeholder (O texto que some ao clicar)
+        campoMensagem.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (campoMensagem.getText().equals(placeholderText)) {
+                    campoMensagem.setText("");
+                    campoMensagem.setForeground(Color.WHITE);
+                    campoMensagem.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                }
+            }
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (campoMensagem.getText().isEmpty()) {
+                    campoMensagem.setForeground(Color.GRAY);
+                    campoMensagem.setFont(new Font("SansSerif", Font.ITALIC, 14));
+                    campoMensagem.setText(placeholderText);
+                }
+            }
+        });
+
+        painelRodape.add(campoMensagem, BorderLayout.CENTER);
+
+        JPanel painelBotoes = new JPanel(new GridLayout(1, 2, 10, 0));
+        painelBotoes.setOpaque(false);
+
+        botaoEmitirAlerta = criarBotaoEstilizado("📡 Emitir Alerta (Chat)", corBotaoAcao);
+        botaoAnexarDocumento = criarBotaoEstilizado("📎 Anexar Laudo (PDF/XLS)", corBotaoArquivo);
+
+        painelBotoes.add(botaoEmitirAlerta);
+        painelBotoes.add(botaoAnexarDocumento);
+        painelRodape.add(painelBotoes, BorderLayout.EAST);
+
+        painelCentral.add(painelRodape, BorderLayout.SOUTH);
+        painelPrincipal.add(painelCentral, BorderLayout.CENTER);
+    }
+
+    // Método auxiliar para criação de botões mais bonitos
+    private JButton criarBotaoEstilizado(String texto, Color corFundo) {
+        JButton botao = new JButton(texto);
+        botao.setBackground(corFundo);
+        botao.setForeground(Color.BLACK);
+        botao.setFont(new Font("SansSerif", Font.BOLD, 12));
+        botao.setFocusPainted(false);
+        botao.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        botao.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return botao;
     }
 
     private void configurarAcoes() {
-        // Ação do botão de enviar (Quando clicar ou apertar ENTER)
-        ActionListener acaoEnviar = new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String texto = campoMensagem.getText();
-                if (!texto.trim().isEmpty()) {
-                    // Mocado: Imprime na própria tela ao invés de enviar para o servidor por enquanto
-                    areaChat.append("[INSPETOR LOCAL] " + texto + "\n");
-                    campoMensagem.setText(""); // Limpa o campo
-                }
-            }
-        };
+        // Ação do Rádio/Chat
+        botaoEmitirAlerta.addActionListener(e -> enviarMensagem());
+        campoMensagem.addActionListener(e -> enviarMensagem()); // Envia com ENTER
 
-        botaoEnviar.addActionListener(acaoEnviar);
-        campoMensagem.addActionListener(acaoEnviar);
-
-        // Ação do botão de arquivo
-        botaoExportarRelatorio.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // Mocado: Simula a abertura de um seletor de arquivos
-                JFileChooser fileChooser = new JFileChooser();
-                int retorno = fileChooser.showOpenDialog(TelaMonitoramentoIA.this);
-
-                if(retorno == JFileChooser.APPROVE_OPTION) {
-                    String nomeArquivo = fileChooser.getSelectedFile().getName();
-                    areaChat.append("[SISTEMA] Preparando arquivo '" + nomeArquivo + "' para compressão GZIP e envio...\n");
-                    // No futuro, aqui você chamará o metódo do Mei para enviar os bytes!
-                }
+        // Ação da Transferência de Arquivo
+        botaoAnexarDocumento.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            if(fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                String nome = fileChooser.getSelectedFile().getName();
+                imprimirLogSistemico("Comprimindo e enviando: " + nome);
             }
         });
     }
 
-    // Método principal apenas para você testar a tela rodando sozinha
-    public static void main(String[] args) {
-        // Alerta o visual padrão do Java para algo mais moderno do sistema operacional
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            e.printStackTrace();
+    private void enviarMensagem() {
+        String texto = campoMensagem.getText();
+        if (!texto.trim().isEmpty() && !texto.equals(placeholderText)) {
+            areaLogEventos.append("[VOCÊ] " + texto + "\n");
+            campoMensagem.setText("");
+        }
+    }
+
+    // Formata avisos do sistema em cor diferente do chat comum
+    private void imprimirLogSistemico(String mensagem) {
+        areaLogEventos.append(">>> SISTEMA: " + mensagem + "\n");
+    }
+
+    // --- CLASSE INTERNA PARA O FUNDO EXIGIDO PELO MANUAL ---
+    // Este painel permite que você coloque uma foto (ex: mapa.png) de fundo.
+    class PainelComFundo extends JPanel {
+        private Image imagemFundo;
+
+        public PainelComFundo() {
+            // Tenta carregar uma imagem. Se você baixar um mapa no futuro, coloque o caminho correto aqui.
+            // Exemplo: new ImageIcon("src/gui/img/mapa_satelite.jpg").getImage();
+            try {
+                imagemFundo = new ImageIcon("caminho_da_sua_imagem.png").getImage();
+            } catch (Exception e) {
+                imagemFundo = null;
+            }
         }
 
-        // Garante que a tela será montada na Thread correta de interface gráfica
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                TelaMonitoramentoIA tela = new TelaMonitoramentoIA();
-                tela.setVisible(true);
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (imagemFundo != null && imagemFundo.getWidth(this) > -1) {
+                // Desenha a imagem esticada para preencher a tela
+                g.drawImage(imagemFundo, 0, 0, getWidth(), getHeight(), this);
+            } else {
+                // Se não achar a imagem, desenha um degradê tecnológico de fundo
+                Graphics2D g2d = (Graphics2D) g;
+                GradientPaint degradê = new GradientPaint(0, 0, new Color(15, 32, 39),
+                                                          getWidth(), getHeight(), new Color(32, 58, 67));
+                g2d.setPaint(degradê);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+
+                // Desenha uma "grade" simulando um radar
+                g2d.setColor(new Color(255, 255, 255, 10)); // Branco quase transparente
+                for(int i = 0; i < getWidth(); i += 40) {
+                    g2d.drawLine(i, 0, i, getHeight());
+                }
+                for(int i = 0; i < getHeight(); i += 40) {
+                    g2d.drawLine(0, i, getWidth(), i);
+                }
             }
+        }
+    }
+
+    public static void main(String[] args) {
+        // Melhora a renderização no Windows/Mac
+        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception e) {}
+
+        SwingUtilities.invokeLater(() -> {
+            new TelaMonitoramentoIA().setVisible(true);
         });
     }
 }
