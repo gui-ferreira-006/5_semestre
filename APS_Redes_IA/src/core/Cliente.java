@@ -25,13 +25,16 @@ public class Cliente {
     acontecer.
     */
 
+    static final String ENDERECO = "LocalHost";
+    static final int PORTA = 65173;
+
     public static void main (String [] args) throws IOException {
 
         /*
         socket -> é a "porta" de comunicação entre o cliente e o servidor.
         */
         
-        Socket socket = new Socket ("Localhost", 65173);
+        Socket socket = new Socket (ENDERECO, PORTA);
         System.out.println ("Conectado ao servidor com Sucesso!");
 
         /*
@@ -48,11 +51,29 @@ public class Cliente {
 
         BufferedReader entrada = new BufferedReader (new InputStreamReader (socket.getInputStream()));
 
-        saida.println ("Olá, Servidor!");
+        BufferedReader teclado = new BufferedReader (new InputStreamReader (System.in));
 
-        String resposta = entrada.readLine ();
-        System.out.println ("Servidor respondeu: " + resposta);
+        Thread threadReceber = new Thread (() -> {
+            try {
+                String mensagem;
+                while ((mensagem = entrada.readLine ()) != null) {
+                    System.out.println (mensagem);
+                }
+            }
 
+            catch (IOException e) {
+                System.out.println ("Conexão encerrad.");
+            }
+        });
+
+        threadReceber.start();
+
+        //Loop principal para enviar mensagens pelo teclado
+        String texto;
+        while ((texto = teclado.readLine ()) != null) {
+            saida.println (texto);
+        }
+       
         socket.close ();
 
     }

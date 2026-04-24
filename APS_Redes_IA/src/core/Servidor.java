@@ -6,32 +6,32 @@ import java.net.*;
 
 public class Servidor {
 
+    static final int PORTA = 65173;
+
     public static void main (String [] args) throws IOException {
 
         //Abre uma "porta" para escutar as conexões dos clientes
-        ServerSocket serverSocket = new ServerSocket (65173);
-        System.out.println ("Aguardando conexão na porta 65173...");
+        ServerSocket serverSocket = new ServerSocket (PORTA);
+        System.out.println ("Servidor rodando na porta " + PORTA);
+        System.out.println ("Aguardando conexão...");
 
-        //Fica esperando até um cliente realizar a conexão com a porta aberta
-        Socket socket = serverSocket.accept();
-        System.out.println ("Conectado ao servidor com sucesso!");
+        //Loop Infinitoo - o servidor fica sempre rodando, esperando clientes se conectarem
+        while (true) {
 
-        //Prepara para Ler mensagens do cliente
-        BufferedReader entrada = new BufferedReader (new InputStreamReader (socket.getInputStream()));
+            //Espera um cliente conectar
+            Socket socket = serverSocket.accept();
+            System.out.println ("novo cliente conectado ao servidor: " + socket.getInetAddress());
 
-        //Prepara para enviar mensagens ao cliente
-        PrintWriter saida = new PrintWriter (socket.getOutputStream (), true);
+            //Cria um handler (garçom) ppara esse cliente
+            ClienteHandler handler = new ClienteHandler (socket);
+            
+            //Cria um Thread e passa o handler para ela 
+            Thread thread = new Thread (handler);
 
-        //Lê a mensagem que o cliente enviou
-        String mensagem = entrada.readLine ();
-        System.out.println ("You: " + mensagem);
+            //Inicia a Thread, ela começa a rodar o método run() do handler
+            thread.start();
 
-        //Responde ao cliente confirmando que a mensagem foi recebida
-        saida.println ("Sua mensagem foi recebida com sucesso!");
-
-        //Fecha a conexão com o cliente e a porta do servidor
-        socket.close ();
-        serverSocket.close ();
+        }
 
     }
     
