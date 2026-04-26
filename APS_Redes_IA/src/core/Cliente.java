@@ -25,7 +25,7 @@ public class Cliente {
     acontecer.
     */
 
-    static final String ENDERECO = "LocalHost";
+    static final String ENDERECO = "localHost";
     static final int PORTA = 65173;
 
     public static void main (String [] args) throws IOException {
@@ -35,8 +35,7 @@ public class Cliente {
         */
         
         Socket socket = new Socket (ENDERECO, PORTA);
-        System.out.println ("Conectado ao servidor com Sucesso!");
-
+       
         /*
         PrintWriter -> Ferramenta de escrita de texto, ele pega qualquer
         dado e transforma em texto para enviar a algum destino.
@@ -53,6 +52,7 @@ public class Cliente {
 
         BufferedReader teclado = new BufferedReader (new InputStreamReader (System.in));
 
+        // Thread para Receber mensagens do servidor
         Thread threadReceber = new Thread (() -> {
             try {
                 String mensagem;
@@ -62,7 +62,7 @@ public class Cliente {
             }
 
             catch (IOException e) {
-                System.out.println ("Conexão encerrad.");
+                System.out.println ("Conexão encerrada.");
             }
         });
 

@@ -20,7 +20,7 @@ public class Servidor {
 
             //Espera um cliente conectar
             Socket socket = serverSocket.accept();
-            System.out.println ("novo cliente conectado ao servidor: " + socket.getInetAddress());
+            System.out.println ("Novo cliente conectado ao servidor: " + socket.getInetAddress());
 
             //Cria um handler (garçom) ppara esse cliente
             ClienteHandler handler = new ClienteHandler (socket);
