@@ -5,7 +5,8 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
-public class TelaMonitoramentoIA extends JFrame {
+import com.formdev.flatlaf.FlatDarkLaf;
+public class TelaServidor extends JFrame {
 
     // Componentes da Interface
     private JTextArea areaLogEventos;
@@ -22,7 +23,7 @@ public class TelaMonitoramentoIA extends JFrame {
     private Color corBotaoArquivo = new Color(192, 57, 43);
     private String placeholderText = " Escreva uma mensagem de alerta...";
 
-    public TelaMonitoramentoIA() {
+    public TelaServidor() {
         // 1. Configurações Base do JFrame
         setTitle("Dashboard - Monitoramento Ambiental via IA");
         setSize(1000, 650);
@@ -224,11 +225,13 @@ public class TelaMonitoramentoIA extends JFrame {
     }
 
     public static void main(String[] args) {
-        // Melhora a renderização no Windows/Mac
-        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception e) {}
+        // FlatLaf aplicado para um visual mais moderno (Dark Mode)
+        try {
+            UIManager.setLookAndFeel(new FlatDarkLaf());
+        } catch (Exception e) {
+            System.err.println("Falha ao carregar o tema moderno. " + e.getMessage());
+        }
 
-        SwingUtilities.invokeLater(() -> {
-            new TelaMonitoramentoIA().setVisible(true);
-        });
+        SwingUtilities.invokeLater(() -> new TelaServidor().setVisible(true));
     }
 }
