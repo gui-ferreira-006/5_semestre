@@ -124,13 +124,57 @@ public class TelaLogin extends JFrame {
 
         // Evento do Botão (Simulando a ação para a Danielle e Mei assumirem depois)
         btnConectar.addActionListener((ActionEvent e) -> {
+            // Este é um feedback visual para o usuário, indicando que a autenticação está em andamento
             lblStatus.setForeground(new Color(200, 100, 0)); // Laranja para ação em andamento
             lblStatus.setText("Status: Autenticando com " + campoIpServidor.getText() + "...");
 
-            // Aqui a Danielle vai validar o usuário no banco
-            // E o Mei vai iniciar o Socket com o IP
+            /* ================================================================================
+            Prestem atenção: aqui é aonde a lógica do Back-end entra em cena
+            O código abaixo (Timer) é apenas para simular o tempo de loading.
+            Quando forem integrar o Back-end, APAGUEM a simulação e descomentem
+            a estrutura abaixo, adaptando para as classes de vocês.
+            ===================================================================================
+            
+            // --- PASSO 1: Danielle (BANCO DE DADOS) ---
+            // Dani, você precisa pegar o que o usuário digitou nestes dois campos:
+            String credencialDigitada = campoCredencial.getText();
+            String senhaDigitada = new String(campoSenha.getPassword());
+            
+            // Depois, você chama a sua classe DAO para validar lá no seu banco:
+            AutenticacaoDAO dao = new AutenticacaoDAO();
+            boolean loginValido = dao.validarCredenciais(credencialDigitada, senhaDigitada);
+            
+            if (loginValido) {
+                // Se o banco aprovou, a gente avisa o usuário e passa a bola pro Mei!
+                lblStatus.setForeground(new Color(16, 185, 129)); // Verde
+                lblStatus.setText("Status: Conexão Estabelecida!");
+                
+                // --- PASSO 2: MEI (REDES / SOCKETS) ---
+                // Mei, como o login deu certo, agora você precisa conectar o Socket 
+                // do Cliente lá no Servidor Central. Pega o IP digitado assim:
+                String ipDoServidor = campoIpServidor.getText();
+                
+                // Aqui você chama a sua classe que inicia a conexão TCP/Socket:
+                // ClienteSocket.iniciarConexao(ipDoServidor, 5000); // Exemplo de porta
+                
+                // --- PASSO 3: TRANSIÇÃO DE TELAS (FRONT-END) ---
+                // Depois que o banco validou e o socket conectou, nós fechamos
+                // a tela de login e abrimos a tela principal do Cliente.
+                dispose(); // Fecha esta janela de login
+                new TelaCliente().setVisible(true); // Abre a base de monitoramento
+                
+            } else {
+                // Se a Danielle retornar 'false' do banco (senha ou usuário incorretos):
+                JOptionPane.showMessageDialog(TelaLogin.this, 
+                    "Credenciais inválidas ou Estação não encontrada no Banco de Dados.", 
+                    "Erro de Autenticação", JOptionPane.ERROR_MESSAGE);
+                lblStatus.setText("Status: Falha na conexão.");
+                lblStatus.setForeground(Color.RED);
+            }
+            */
 
             // Exemplo visual de resposta
+            // (Apagar este bloco inteiro quando forem integrar o código real do banco e socket)
             Timer timer = new Timer(1500, evt -> {
                 if(campoCredencial.getText().isEmpty() || new String(campoSenha.getPassword()).isEmpty()) {
                     JOptionPane.showMessageDialog(this, "Por favor, insira as credenciais da estação.", "Aviso", JOptionPane.WARNING_MESSAGE);
