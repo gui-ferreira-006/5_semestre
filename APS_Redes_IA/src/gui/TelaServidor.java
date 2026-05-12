@@ -1,237 +1,176 @@
 package gui;
 
+import com.formdev.flatlaf.FlatDarkLaf;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.text.*;
 import java.awt.*;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
-import com.formdev.flatlaf.FlatDarkLaf;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 public class TelaServidor extends JFrame {
 
-    // Componentes da Interface
-    private JTextArea areaLogEventos;
-    private JTextField campoMensagem;
-    private JButton botaoEmitirAlerta;
-    private JButton botaoAnexarDocumento;
-    private JList<String> listaInspetores;
+    // Nova paleta de cores (Estética sugerida pela Julia)
+    private final Color corFundoLateral = new Color(26, 26, 38); // Fundo do painel direito
+    private final Color corFundoCentral = new Color(26, 26, 38); // Fundo principal escuro
+    private final Color corBorda = new Color(75, 55, 105); // Linhas divisórias arroxeadas
+    private final Color corTextoLaranja = new Color(245, 176, 65); // Textos do log (Laranja/Dourado)
+    private final Color corStatusCiano = new Color(0, 229, 255); //Ciano brilhante para IP/Status
+    private final Color corBotaoRoxo = new Color(165, 85, 160); // Roxo/Magenta do botão
+    private final Color corCabecalhoTabela = new Color(199, 120, 214); // Roxo claro das colunas
 
-    // Paleta de Cores Moderna (Dark/Tech Theme)
-    private Color corBarraLateral = new Color(15, 20, 25);
-    private Color corFundoLogSolido = new Color(25, 30, 35); // Agora a cor é sólida para legibilidade
-    private Color corTextoVerde = new Color(74, 255, 126);
-    private Color corBotaoAcao = new Color(41, 128, 185);
-    private Color corBotaoArquivo = new Color(192, 57, 43);
-    private String placeholderText = " Escreva uma mensagem de alerta...";
+    private JTextPane logEventos;
+    private DefaultTableModel modelTabela; // Agora usando uma tabela em vez de Lista
+    private JTable tabelaTerminal;
 
     public TelaServidor() {
-        // 1. Configurações Base do JFrame
-        setTitle("Dashboard - Monitoramento Ambiental via IA");
-        setSize(1000, 650);
+        configurarJanela();
+
+        // Layout Principal
+        add(criarCabecalho(), BorderLayout.NORTH);
+        add(criarPainelCentralLog(), BorderLayout.CENTER);
+        add(criarPainelLateralDireita(), BorderLayout.EAST);
+
+        // Log Inicial de Sistema
+        adicionarLog("[12:22:03] [SISTEMA] Servidor Central iniciado. Aguardando conexões na porta ...");
+    }
+
+    private void configurarJanela() {
+        setTitle("EcoMonitor - Central de Operações e Auditoria");
+        setSize(1050, 650);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-
-        // Em vez de um fundo padrão, usamos um painel customizado para a imagem de fundo
-        PainelComFundo painelPrincipal = new PainelComFundo();
-        painelPrincipal.setLayout(new BorderLayout(15, 15));
-        painelPrincipal.setBorder(new EmptyBorder(10, 10, 10, 10));
-        setContentPane(painelPrincipal);
-
-        // 2. Montando a Barra Lateral (Sidebar)
-        configurarBarraLateral(painelPrincipal);
-
-        // 3. Montando a Área Central (O Log e os Controles)
-        configurarAreaCentral(painelPrincipal);
-
-        // 4. Configurar eventos (Cliques falsos por enquanto)
-        configurarAcoes();
-
-        // Simulando a inicialização do sistema
-        imprimirLogSistemico("Inicializando protocolo de comunicação M2M...");
-        imprimirLogSistemico("Conectado ao Servidor Central. Criptografia ativa.");
+        setLayout(new BorderLayout());
     }
 
-    private void configurarBarraLateral(JPanel painelPrincipal) {
-        JPanel barraLateral = new JPanel(new BorderLayout());
-        barraLateral.setBackground(corBarraLateral);
-        barraLateral.setPreferredSize(new Dimension(220, 0));
+    private JPanel criarCabecalho() {
+        JPanel cabecalho = new JPanel(new BorderLayout());
+        cabecalho.setBackground(corFundoCentral);
+        cabecalho.setPreferredSize(new Dimension(0, 70));
+        cabecalho.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, corBorda));
 
-        // Título da Sidebar
-        JLabel labelStatus = new JLabel("ESTAÇÕES ATIVAS", SwingConstants.CENTER);
-        labelStatus.setForeground(Color.WHITE);
-        labelStatus.setFont(new Font("SansSerif", Font.BOLD, 14));
-        labelStatus.setBorder(new EmptyBorder(15, 0, 15, 0));
-        barraLateral.add(labelStatus, BorderLayout.NORTH);
+        JLabel titulo = new JLabel(" CENTRAL DE OPERAÇÕES M2M");
+        titulo.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        titulo.setForeground(Color.WHITE);
 
-        // Lista de Usuários Online (Fictício por enquanto)
-        String[]usuarios = {">>>[Você] Base Sul", ">>>Drone de Inspeção 01", ">>>Central de IA", ">>>Fiscalização Móvel"};
-        listaInspetores = new JList<>(usuarios);
-        listaInspetores.setBackground(corBarraLateral);
-        listaInspetores.setForeground(new Color(150, 160, 170));
+        JLabel info = new JLabel("Status: Servidor Online | IP: 192.168.1.100 ");
+        info.setForeground(corStatusCiano);
+        info.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-        // Bordas e scroll para a lista
-        JScrollPane scrollLista = new JScrollPane(listaInspetores);
-        scrollLista.setBorder(new EmptyBorder(0, 10, 10 ,10));
-        scrollLista.getViewport().setBackground(corBarraLateral);
-        barraLateral.add(scrollLista, BorderLayout.CENTER);
-
-        painelPrincipal.add(barraLateral, BorderLayout.WEST);
+        cabecalho.add(titulo, BorderLayout.WEST);
+        cabecalho.add(info, BorderLayout.EAST);
+        return cabecalho;
     }
 
-    private void configurarAreaCentral(JPanel painelPrincipal) {
-        JPanel painelCentral = new JPanel(new BorderLayout(10, 10));
-        painelCentral.setOpaque(false); // Transparente para ver o fundo
+    private JPanel criarPainelCentralLog() {
+        JPanel painel = new JPanel(new BorderLayout());
+        painel.setBackground(corFundoCentral);
+        painel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // A. O "Rádio" (Log de Eventos)
-        areaLogEventos = new JTextArea();
-        areaLogEventos.setEditable(false);
-        areaLogEventos.setBackground(corFundoLogSolido);
-        areaLogEventos.setForeground(corTextoVerde);
-        areaLogEventos.setFont(new Font("Consolas", Font.PLAIN, 14));
-        areaLogEventos.setMargin(new Insets(15, 15, 15, 15));
+        JLabel lblTitulo = new JLabel("MONITORAMENTO DE LOGS");
+        lblTitulo.setForeground(new Color(138, 123, 163)); // Roxo acinzentado do título
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblTitulo.setBorder(new EmptyBorder(0, 0, 10, 0));
 
-        JScrollPane scrollChat = new JScrollPane(areaLogEventos);
-        scrollChat.setBorder(BorderFactory.createLineBorder(new Color(60, 70, 80), 1));
-        painelCentral.add(scrollChat, BorderLayout.CENTER);
+        logEventos = new JTextPane();
+        logEventos.setEditable(false);
+        logEventos.setBackground(corFundoCentral);
+        logEventos.setFont(new Font("Consolas", Font.PLAIN, 15));
 
-        // B. Os Controles (Rodapé)
-        JPanel painelRodape = new JPanel(new BorderLayout(10, 0));
-        painelRodape.setOpaque(false);
-        painelRodape.setBorder(new EmptyBorder(10, 0, 10, 0));
+        JScrollPane scroll = new JScrollPane(logEventos);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(corFundoCentral);
 
-        campoMensagem = new JTextField(placeholderText);
-        campoMensagem.setBackground(new Color(45, 50, 60));
-        campoMensagem.setForeground(Color.GRAY);
-        campoMensagem.setFont(new Font("SansSerif", Font.ITALIC, 14));
-        campoMensagem.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(80, 90, 100)),
-                BorderFactory.createEmptyBorder(8, 10, 8, 10)
-        ));
+        painel.add(lblTitulo, BorderLayout.NORTH);
+        painel.add(scroll, BorderLayout.CENTER);
+        return painel;
+    }
 
-        // Lógica de Placeholder (O texto que some ao clicar)
-        campoMensagem.addFocusListener(new FocusListener() {
+    private JPanel criarPainelLateralDireita() {
+        JPanel lateral = new JPanel(new BorderLayout());
+        lateral.setPreferredSize(new Dimension(320, 0));
+        lateral.setBackground(corFundoLateral);
+        lateral.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, corBorda));
+
+        // Título Terminais
+        JLabel lblTerminais = new JLabel(" TERMINAIS ATIVOS ", SwingConstants.CENTER);
+        lblTerminais.setPreferredSize(new Dimension(0, 50));
+        lblTerminais.setForeground(Color.WHITE);
+        lblTerminais.setFont(new Font("Segoe UI", Font.BOLD, 14));
+
+        // MUDANÇA: Usando JTable em vez JList ---
+        String[] colunas = {"Terminal", "IP", "Localização"};
+        Object[][] dadosIniciais = {
+            {"TERM-01", "192.168.1.102", "Armazém SUL"},
+            {"TERM-02", "192.168.1.103", "Fábrica OESTE"},
+            {"TERM-03", "192.168.1.104", "Escritório CENTRAL"}
+        };
+
+        modelTabela = new DefaultTableModel(dadosIniciais, colunas) {
             @Override
-            public void focusGained(FocusEvent e) {
-                if (campoMensagem.getText().equals(placeholderText)) {
-                    campoMensagem.setText("");
-                    campoMensagem.setForeground(Color.WHITE);
-                    campoMensagem.setFont(new Font("SansSerif", Font.PLAIN, 14));
-                }
+            public boolean isCellEditable(int row, int column) {
+                return false; // Impede que o usuário edite o texto clicando
             }
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (campoMensagem.getText().isEmpty()) {
-                    campoMensagem.setForeground(Color.GRAY);
-                    campoMensagem.setFont(new Font("SansSerif", Font.ITALIC, 14));
-                    campoMensagem.setText(placeholderText);
-                }
-            }
-        });
+        };
 
-        painelRodape.add(campoMensagem, BorderLayout.CENTER);
+        tabelaTerminal = new JTable(modelTabela);
+        tabelaTerminal.setBackground(corFundoLateral);
+        tabelaTerminal.setForeground(Color.WHITE);
+        tabelaTerminal.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        tabelaTerminal.setRowHeight(40);
+        tabelaTerminal.setShowGrid(false); // Remove as linhas de grade para ficar limpo
+        tabelaTerminal.setSelectionBackground(new Color(45, 45, 68)); // Cor ao clicar na linha
 
-        JPanel painelBotoes = new JPanel(new GridLayout(1, 2, 10, 0));
-        painelBotoes.setOpaque(false);
+        // Estilizando o Cabeçalho da Tabela (Cor Roxa do print)
+        JTableHeader cabecalhoTabela = tabelaTerminal.getTableHeader();
+        cabecalhoTabela.setBackground(corFundoLateral);
+        cabecalhoTabela.setForeground(corCabecalhoTabela);
+        cabecalhoTabela.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        cabecalhoTabela.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, corBorda));
 
-        botaoEmitirAlerta = criarBotaoEstilizado("📡 Emitir Alerta (Chat)", corBotaoAcao);
-        botaoAnexarDocumento = criarBotaoEstilizado("📎 Anexar Laudo (PDF/XLS)", corBotaoArquivo);
-
-        painelBotoes.add(botaoEmitirAlerta);
-        painelBotoes.add(botaoAnexarDocumento);
-        painelRodape.add(painelBotoes, BorderLayout.EAST);
-
-        painelCentral.add(painelRodape, BorderLayout.SOUTH);
-        painelPrincipal.add(painelCentral, BorderLayout.CENTER);
-    }
-
-    // Método auxiliar para criação de botões mais bonitos
-    private JButton criarBotaoEstilizado(String texto, Color corFundo) {
-        JButton botao = new JButton(texto);
-        botao.setBackground(corFundo);
-        botao.setForeground(Color.BLACK);
-        botao.setFont(new Font("SansSerif", Font.BOLD, 12));
-        botao.setFocusPainted(false);
-        botao.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
-        botao.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return botao;
-    }
-
-    private void configurarAcoes() {
-        // Ação do Rádio/Chat
-        botaoEmitirAlerta.addActionListener(e -> enviarMensagem());
-        campoMensagem.addActionListener(e -> enviarMensagem()); // Envia com ENTER
-
-        // Ação da Transferência de Arquivo
-        botaoAnexarDocumento.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            if(fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                String nome = fileChooser.getSelectedFile().getName();
-                imprimirLogSistemico("Comprimindo e enviando: " + nome);
-            }
-        });
-    }
-
-    private void enviarMensagem() {
-        String texto = campoMensagem.getText();
-        if (!texto.trim().isEmpty() && !texto.equals(placeholderText)) {
-            areaLogEventos.append("[VOCÊ] " + texto + "\n");
-            campoMensagem.setText("");
-        }
-    }
-
-    // Formata avisos do sistema em cor diferente do chat comum
-    private void imprimirLogSistemico(String mensagem) {
-        areaLogEventos.append(">>> SISTEMA: " + mensagem + "\n");
-    }
-
-    // --- CLASSE INTERNA PARA O FUNDO EXIGIDO PELO MANUAL ---
-    // Este painel permite que você coloque uma foto (ex: mapa.png) de fundo.
-    class PainelComFundo extends JPanel {
-        private Image imagemFundo;
-
-        public PainelComFundo() {
-            // Tenta carregar uma imagem. Se você baixar um mapa no futuro, coloque o caminho correto aqui.
-            // Exemplo: new ImageIcon("src/gui/img/mapa_satelite.jpg").getImage();
-            try {
-                imagemFundo = new ImageIcon("caminho_da_sua_imagem.png").getImage();
-            } catch (Exception e) {
-                imagemFundo = null;
-            }
+        // Alinhando o texto da tabela à esquerda com um pequeno padding
+        DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
+        renderer.setBorder(new EmptyBorder(0,5, 0, 0));
+        for (int i = 0; i < tabelaTerminal.getColumnCount(); i++) {
+            tabelaTerminal.getColumnModel().getColumn(i).setCellRenderer(renderer);
         }
 
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            if (imagemFundo != null && imagemFundo.getWidth(this) > -1) {
-                // Desenha a imagem esticada para preencher a tela
-                g.drawImage(imagemFundo, 0, 0, getWidth(), getHeight(), this);
-            } else {
-                // Se não achar a imagem, desenha um degradê tecnológico de fundo
-                Graphics2D g2d = (Graphics2D) g;
-                GradientPaint degradê = new GradientPaint(0, 0, new Color(15, 32, 39),
-                                                          getWidth(), getHeight(), new Color(32, 58, 67));
-                g2d.setPaint(degradê);
-                g2d.fillRect(0, 0, getWidth(), getHeight());
+        JScrollPane scrollTabela = new JScrollPane(tabelaTerminal);
+        scrollTabela.setBorder(BorderFactory.createEmptyBorder());
+        scrollTabela.getViewport().setBackground(corFundoLateral);
 
-                // Desenha uma "grade" simulando um radar
-                g2d.setColor(new Color(255, 255, 255, 10)); // Branco quase transparente
-                for(int i = 0; i < getWidth(); i += 40) {
-                    g2d.drawLine(i, 0, i, getHeight());
-                }
-                for(int i = 0; i < getHeight(); i += 40) {
-                    g2d.drawLine(0, i, getWidth(), i);
-                }
-            }
+        // Botão de Relatório
+        JButton btnRelatorio = new JButton("Gerar Relatório Geral");
+        btnRelatorio.setBackground(corBotaoRoxo);
+        btnRelatorio.setForeground(Color.WHITE);
+        btnRelatorio.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnRelatorio.setFocusPainted(false);
+        btnRelatorio.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnRelatorio.setPreferredSize(new Dimension(0, 60));
+        btnRelatorio.setBorder(BorderFactory.createEmptyBorder());
+
+        lateral.add(lblTerminais, BorderLayout.NORTH);
+        lateral.add(scrollTabela, BorderLayout.CENTER);
+        lateral.add(btnRelatorio, BorderLayout.SOUTH);
+
+        return lateral;
+    }
+
+    // Método para adicionar logs coloridos (O que o Mei vai usar para mostrar os eventos)
+    public void adicionarLog(String mensagemCompleta) {
+        StyledDocument doc = logEventos.getStyledDocument();
+        Style style = logEventos.addStyle("estiloLaranja", null);
+
+        try {
+            StyleConstants.setForeground(style, corTextoLaranja);
+            doc.insertString(doc.getLength(), mensagemCompleta + "\n", style);
+        } catch (BadLocationException e) {
+            e.printStackTrace();
         }
     }
 
     public static void main(String[] args) {
-        // FlatLaf aplicado para um visual mais moderno (Dark Mode)
-        try {
-            UIManager.setLookAndFeel(new FlatDarkLaf());
-        } catch (Exception e) {
-            System.err.println("Falha ao carregar o tema moderno. " + e.getMessage());
-        }
-
+        FlatDarkLaf.setup();
         SwingUtilities.invokeLater(() -> new TelaServidor().setVisible(true));
     }
 }
