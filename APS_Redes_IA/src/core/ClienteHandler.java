@@ -26,12 +26,43 @@ public class ClienteHandler implements Runnable {
             saida = new PrintWriter (socket.getOutputStream(), true);
 
             //Pede o nome do cliente para verificar se já existem alguém com esse nome
-            saida.println ("Digite seu nome: ");
-            nomeCliente = entrada.readLine();
+            saida.println ("=== Bem-Vindo ao Chat! ===");
+            saida.println ("Digite seu usuário: ");
+            String usuario = entrada.readLine();
 
+            saida.println ("Digite sua senha: ");
+            String senha = entrada.readLine();
+
+            //Tenta o login até 3 vezes
+            int tentativas = 1;
+            while (!GerenciadorDeLogin.verificarLogin (usuario, senha)) {
+
+                if (tentativas >= 3) {
+                   saida.println ("[Servidor] Número de tentativas excedido. Desconectando...");
+                   socket.close();
+                   return;
+
+                }
+
+                saida.println ("[Servidor] Usuário ou senha incorretos! Tentativa " + tentativas + " de 3.");
+                saida.println ("Digite seu usuário: ");
+                usuario = entrada.readLine();
+                saida.println ("Digite sua senha: ");
+                senha = entrada.readLine();
+                tentativas++;
+
+            }
+
+            //Login aprovado!
+            nomeCliente = usuario;
+            saida.println ("[Servidor] Login realizado com sucesso! Bem vindo, " + nomeCliente + "!");
+
+            //===== CHAT =====
+            //Verifica se já está conectado com esse usuário
             while (nomeJaExiste(nomeCliente)) {
-                saida.println ("Este nome já está em uso, por favor escolha outro: ");
-                nomeCliente = entrada.readLine();
+                saida.println ("[Servidor] Este usuário já está conectado em outra sessão!");
+                socket.close();
+                return; 
             }
 
             //Adiciona esse cliente na lista de conectados
@@ -58,9 +89,13 @@ public class ClienteHandler implements Runnable {
 
                 }
 
+                else if (mensagem.startsWith("ARQUIVO:")) {
+                    receberERepassarArquivo (mensagem);
+                }
+
                 else {
                     System.out.println (nomeCliente + ": " + mensagem);
-                    enviarParaTodos("[" + nomeCliente + "] " + mensagem);
+                    enviarParaTodos ("[" + nomeCliente + "] " + mensagem);
 
                 }
             }
@@ -75,7 +110,9 @@ public class ClienteHandler implements Runnable {
         finally {
 
             clientesConectados.remove (this);
-            enviarParaTodos("[Servidor] " + nomeCliente + " saiu do chat!");
+            if (nomeCliente != null) {
+                enviarParaTodos ("[Servidor] " + nomeCliente + " saiu do chat!");
+            }
             try { socket.close (); } catch (IOException e) {}
         }
     }
@@ -147,4 +184,58 @@ public class ClienteHandler implements Runnable {
         return false;
     }
 
+    private void receberERepassarArquivo (String cabecalho) {
+        try {
+
+            //Formato: ARQUIVO:<nome>:<tamanho>
+            String[] partes = cabecalho.split(":");
+            String nomeArquivo = partes[1];
+            long tamanho = Long.parseLong(partes[2]);
+
+            System.out.println ("[Servidor] Recebendo arquivo de: " + nomeCliente + ":" + nomeArquivo);
+
+            DataInputStream entradaBytes = new DataInputStream (socket.getInputStream());
+
+            //Lê todos os bytes do arquivo
+            byte[] dados = new byte [(int) tamanho];
+            entradaBytes.readFully(dados);
+
+            System.out.println("[Servidor] Arquivo recebido! Repassando para os outros clientes...");
+
+            //Repassa para todos os outros clientes
+            repassarArquivoParaTodos (nomeArquivo, dados);
+
+        }
+
+        catch (IOException e) {
+            System.out.println ("[Servidor] Erro ao receber arquivo: " + e.getMessage());
+
+        }
+    }
+
+    //Repassa o arquivo para todos os clientes conectados
+    private void repassarArquivoParaTodos (String nomeArquivo, byte[] dados) {
+        for (ClienteHandler cliente : clientesConectados) {
+            if (cliente != this) { //Não envia de volta para quem mandou
+                try {
+
+                    //Avisa o cliente que vem um arquivo
+                    cliente.saida.println("ARQUIVO:" + nomeArquivo + ":" + dados.length);
+
+                    //Envia os Bytes
+                    DataOutputStream saidaBytes = new DataOutputStream (
+                        cliente.socket.getOutputStream()
+                    );
+
+                    saidaBytes.write(dados);
+                    saidaBytes.flush();
+
+                }
+
+                catch (IOException e) {
+                    System.out.println ("[Servidor] Erro ao repassar arquivo: " + e.getMessage());
+                }
+            }
+        }
+    }
 }

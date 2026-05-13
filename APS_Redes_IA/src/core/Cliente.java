@@ -25,7 +25,7 @@ public class Cliente {
     acontecer.
     */
 
-    static final String ENDERECO = "localHost";
+    static final String ENDERECO = "localhost";
     static final int PORTA = 65173;
 
     public static void main (String [] args) throws IOException {
@@ -50,6 +50,10 @@ public class Cliente {
 
         BufferedReader entrada = new BufferedReader (new InputStreamReader (socket.getInputStream()));
 
+        DataOutputStream saidaBytes = new DataOutputStream (socket.getOutputStream());
+
+        DataInputStream entradaBytes = new DataInputStream (socket.getInputStream());
+
         BufferedReader teclado = new BufferedReader (new InputStreamReader (System.in));
 
         // Thread para Receber mensagens do servidor
@@ -57,7 +61,47 @@ public class Cliente {
             try {
                 String mensagem;
                 while ((mensagem = entrada.readLine ()) != null) {
-                    System.out.println (mensagem);
+                    
+                    //Verifica se é um arquivo chegando
+                    if (mensagem.startsWith ("ARQUIVO: ")) {
+
+                        //Formato: ARQUIVO: <nome>:<tamanho>
+                        String[] partes = mensagem.split (":");
+                        String nomeArquivo = partes[1];
+                        long tamanho = Long.parseLong (partes[2]);
+
+                        System.out.println("[Servidor] Recebendo arquivo: " + nomeArquivo + " (" + tamanho + " bytes)");
+
+                        //Cria o arquivo na pasta "recebidos"
+                        File pasta = new File ("recebidos");
+                        if (!pasta.exists()) pasta.mkdirs();
+
+                        File arquivo = new File ("recebidos/" + nomeArquivo);
+                        FileOutputStream fos = new FileOutputStream (arquivo);
+
+                        //Lê os bytes e salva no arquivo
+
+                        byte[] buffer = new byte [4096];
+                        long totalLido = 0;
+                        int lido;
+
+                        while (totalLido < tamanho && (lido = entradaBytes.read(buffer, 0, 
+                            (int) Math.min(buffer.length, tamanho - totalLido))) != -1) {
+                            fos.write(buffer, 0, lido);
+                            totalLido += lido;
+                        }
+
+                        fos.close ();
+                        System.out.println ("[Servidor] Arquivo salvo em: recebidos/" + nomeArquivo);
+
+                    }
+
+                    else {
+
+                        //Mensagem de texto normal
+                        System.out.println (mensagem);
+
+                    }
                 }
             }
 
@@ -71,7 +115,45 @@ public class Cliente {
         //Loop principal para enviar mensagens pelo teclado
         String texto;
         while ((texto = teclado.readLine ()) != null) {
-            saida.println (texto);
+
+            //Verifica se o usuário quer enviar um arquivo
+            if (texto.startsWith ("/arquivo ")) {
+
+                //Formato: /arquivo <caminho do arquivo>>
+                String caminho = texto.substring(9);
+                File arquivo = new File (caminho);
+
+                if (!arquivo.exists()) {
+                    System.out.println ("Arquivo não encontrado: " + caminho);
+                    continue;
+
+                }
+
+                //Avisa o servidor: nome e tamanho do arquivo
+                saida.println ("ARQUIVO: " + arquivo.getName() + ":" + arquivo.length());
+
+                //Envia os bytes do arquivo
+                FileInputStream fis = new FileInputStream (arquivo);
+                byte[] buffer = new byte[4096];
+                int lido;
+
+                while ((lido = fis.read(buffer)) != -1) {
+                    saidaBytes.write(buffer, 0, lido);
+
+                }
+
+                saidaBytes.flush();
+                fis.close();
+                System.out.println("Arquivo enviado: " + arquivo.getName());
+
+            }
+
+            else {
+
+                //Mensagem de texto normal
+                saida.println (texto);
+            }
+
         }
        
         socket.close ();

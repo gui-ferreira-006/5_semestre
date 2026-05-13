@@ -22,7 +22,7 @@ public class Servidor {
             Socket socket = serverSocket.accept();
             System.out.println ("Novo cliente conectado ao servidor: " + socket.getInetAddress());
 
-            //Cria um handler (garçom) ppara esse cliente
+            //Cria um handler (garçom) para esse cliente
             ClienteHandler handler = new ClienteHandler (socket);
             
             //Cria um Thread e passa o handler para ela 
