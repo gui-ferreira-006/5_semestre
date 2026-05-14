@@ -4,256 +4,243 @@ import com.formdev.flatlaf.FlatLightLaf;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.util.Random; // Importação para gerar dados aleatórios
+import java.awt.event.ActionEvent;
 
 public class TelaCliente extends JFrame {
-    
+
+    // Paleta de Cores baseada no novo design sugerido pelo grupo
+    private final Color corFundo = new Color(223, 245, 224); // Verde Claro (Fundo)
+    private final Color corTituloEsquerdo = new Color(22, 101, 52); // Verde Escuro Floresta
+    private final Color corBotaoLaudo = new Color(30, 58, 138); // Azul Escuro / Marinho
+    private final Color corBotaoAlerta = new Color(21, 128, 61); // Verde Escuro (Ação)
+
+    // Cores das Barras de Progresso
+    private final Color corBarraAr = new Color(34, 197, 94); // Verde
+    private final Color corBarraFogo = new Color(234, 179, 8); // Amarelo
+    private final Color corBarraAgua = new Color(59, 130, 246); // Azul
+
+    // Componentes que o Back-end vai interagir
+    private JProgressBar progressoAr;
+    private JProgressBar progressoFogo;
+    private JProgressBar progressoAgua;
     private JTextArea areaChat;
     private JTextField campoMensagem;
-    private JButton btnEnviar;
-    private JButton btnAnexar;
-
-    // As barras de progresso variáveis da classe para o botão poder atualizá-las
-    private JProgressBar barraAr;
-    private JProgressBar barraIncendio;
-    private JProgressBar barraRio;
-
-    // Paleta de Cores Ecológica
-    private Color corFundo = new Color(245, 247, 240); // Verde claro suave
-    private Color corPainel = Color.WHITE; // Branco para os painéis
-    private Color corVerdePrincipal = new Color(16, 185, 129);
-    private Color corTextoPadrao = new Color(50, 50, 50); // Cinza escuro para o texto
+    private JButton btnEnviarAlerta;
+    private JButton btnSubmeterLaudo;
 
     public TelaCliente() {
         setTitle("Base de Monitoramento - Terminal de Campo");
         setSize(950, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        setLayout(new BorderLayout(15, 15));
+
+        // Fundo geral da janela
         getContentPane().setBackground(corFundo);
+        setLayout(new BorderLayout());
 
-        ((JPanel) getContentPane()).setBorder(new EmptyBorder(15, 15, 15, 15));
-
-        inicializarPainelSensores();
-        inicializarPainelChat();
+        // Criando a divisão em dois painéis (Esquerdo e Direito)
+        add(criarPainelEsquerdo(), BorderLayout.WEST);
+        add(criarPainelDireito(), BorderLayout.CENTER);
     }
 
-    private void inicializarPainelSensores() {
-        JPanel painelLateral = new JPanel();
-        painelLateral.setLayout(new BoxLayout(painelLateral, BoxLayout.Y_AXIS));
-        painelLateral.setPreferredSize(new Dimension(280, 0));
-        painelLateral.setBackground(corPainel);
-        painelLateral.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 220, 220), 1, true),
-                new EmptyBorder(20, 20, 20, 20)
-        ));
+    // ==================================================================
+    // PAINEL ESQUERDO (Leituras Locais)
+    // ==================================================================
+    private JPanel criarPainelEsquerdo() {
+        JPanel painel = new JPanel(new BorderLayout());
+        painel.setPreferredSize(new Dimension(300, 0));
+        painel.setBackground(corFundo);
+        painel.setBorder(new EmptyBorder(30, 20, 20, 20));
 
-        JLabel tituloSensores = new JLabel("Leituras Locais");
-        tituloSensores.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        tituloSensores.setForeground(corVerdePrincipal);
-        tituloSensores.setAlignmentX(Component.CENTER_ALIGNMENT);
+        // Conteúdo Superior (Barras e Botão)
+        JPanel painelConteudo = new JPanel();
+        painelConteudo.setLayout(new BoxLayout(painelConteudo, BoxLayout.Y_AXIS));
+        painelConteudo.setBackground(corFundo);
 
-        painelLateral.add(tituloSensores);
-        painelLateral.add(Box.createVerticalStrut(30));
+        JLabel lblTitulo = new JLabel("Leituras Locais");
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        lblTitulo.setForeground(corTituloEsquerdo);
+        lblTitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Inicializando as barras antes de adicioná-las ao painel
-        barraAr = criarBarraProgresso(85, new Color(16, 185, 129));
-        barraIncendio = criarBarraProgresso(30, new Color(245, 158, 11));
-        barraRio = criarBarraProgresso(65, new Color(59, 130, 246));
+        painelConteudo.add(lblTitulo);
+        painelConteudo.add(Box.createVerticalStrut(40));
 
-        painelLateral.add(montarBlocoSensor("Qualidade do Ar", barraAr));
-        painelLateral.add(Box.createVerticalStrut(20));
-        painelLateral.add(montarBlocoSensor("Risco de Incêndio", barraIncendio));
-        painelLateral.add(Box.createVerticalStrut(20));
-        painelLateral.add(montarBlocoSensor("Nível do Rio", barraRio));
+        // 1. Qualidade do Ar
+        progressoAr = adicionarBarraLeitura(painelConteudo, "Qualidade do Ar", 85, corBarraAr);
 
-        painelLateral.add(Box.createVerticalStrut(30));
+        // 2. Risco de Incêndio
+        progressoFogo = adicionarBarraLeitura(painelConteudo, "Risco de Incêndio", 40, corBarraFogo);
 
-        // Criando o botão de Atualizar Sensores
-        JButton btnAtualizarSensores = new JButton("↻ Simular Leituras");
-        btnAtualizarSensores.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btnAtualizarSensores.setBackground(new Color(240, 240, 240));
-        btnAtualizarSensores.setForeground(corTextoPadrao);
-        btnAtualizarSensores.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnAtualizarSensores.setFocusPainted(false);
-        btnAtualizarSensores.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        // 3. Nível do Rio
+        progressoAgua = adicionarBarraLeitura(painelConteudo, "Nível do Rio", 60, corBarraAgua);
 
-        // Ação do botão: gera números aleatórios e atualiza as barras
-        btnAtualizarSensores.addActionListener(e -> atualizarBarrasAleatoriamente());
+        // Botão de Simular Leituras
+        JButton btnSimular = new JButton("Simular Leituras");
+        btnSimular.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        btnSimular.setBackground(new Color(220, 225, 220));
+        btnSimular.setFocusPainted(false);
+        btnSimular.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        painelLateral.add(btnAtualizarSensores);
+        // Ação para animar as barras (apenas visual para a apresentação)
+        btnSimular.addActionListener(e -> simularMudancaDeSensores());
 
-        painelLateral.add(Box.createVerticalGlue());
+        painelConteudo.add(Box.createVerticalStrut(20));
+        painelConteudo.add(btnSimular);
 
-        JLabel statusConexao = new JLabel("Status: Conectado ao Serividor Central");
-        statusConexao.setFont(new Font("Segoe UI", Font.ITALIC, 12));
-        statusConexao.setForeground(Color.GRAY);
-        statusConexao.setAlignmentX(Component.CENTER_ALIGNMENT);
-        painelLateral.add(statusConexao);
+        // Status no Rodapé Esquerdo
+        JLabel lblStatus = new JLabel("Status: Conectado ao Servidor Central");
+        lblStatus.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+        lblStatus.setForeground(Color.BLACK);
+        lblStatus.setHorizontalAlignment(SwingConstants.LEFT);
 
-        add(painelLateral, BorderLayout.WEST);
-    }
-
-    // Método auxiliar para criar uma barra de progresso personalizada
-    private JProgressBar criarBarraProgresso(int valorInicial, Color cor) {
-        JProgressBar barra = new JProgressBar(0, 100);
-        barra.setValue(valorInicial);
-        barra.setForeground(cor);
-        barra.setBackground(new Color(230, 230, 230));
-        barra.setString(valorInicial + "%");
-        barra.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        barra.setBorderPainted(false);
-        return barra;
-    }
-
-    // Método auxiliar para montar o texto e a barra juntos
-    private JPanel montarBlocoSensor(String nome, JProgressBar barra) {
-        JPanel painel = new JPanel(new BorderLayout(0, 5));
-        painel.setBackground(corPainel);
-        painel.setMaximumSize(new Dimension(250, 40));
-
-        JLabel lblNome = new JLabel(nome);
-        lblNome.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        lblNome.setForeground(corTextoPadrao);
-
-        painel.add(lblNome, BorderLayout.NORTH);
-        painel.add(barra, BorderLayout.CENTER);
+        painel.add(painelConteudo, BorderLayout.CENTER);
+        painel.add(lblStatus, BorderLayout.SOUTH);
 
         return painel;
     }
 
-    // A ação do botão para atualizar as barras com valores aleatórios
-    private void atualizarBarrasAleatoriamente() {
-        Random gerador = new Random();
+    // Método auxiliar para criar as barras de progresso do mockup
+    private JProgressBar adicionarBarraLeitura(JPanel painel, String texto, int valor, Color cor) {
+
+        // O Wrapper é a "caixa" que vai guardar o texto e a barra juntos
+        JPanel wrapper = new JPanel();
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setBackground(corFundo);
+        // Centralizando a caixa inteira em relação ao painel principal
+        wrapper.setAlignmentX(Component.CENTER_ALIGNMENT);
+        wrapper.setMaximumSize(new Dimension(250, 40));
 
 
-        // Gera valores entre 0 e 100
-        int novoAr = gerador.nextInt(101);
-        int novoIncendio = gerador.nextInt(101);
-        int novoRio = gerador.nextInt(101);
+        JLabel label = new JLabel(texto);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        label.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Atualiza a barra de Qualidade do Ar
-        barraAr.setValue(novoAr);
-        barraAr.setString(novoAr + "%");
+        JProgressBar barra = new JProgressBar(0, 100);
+        barra.setValue(valor);
+        barra.setForeground(cor);
+        barra.setBackground(new Color(230, 230, 230)); // Fundo cinza claro da barra
+        barra.setPreferredSize(new Dimension(250, 8)); // Altura fininha
+        barra.setMaximumSize(new Dimension(250, 8));
+        barra.setBorderPainted(false); // Remove borda 3D
+        barra.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Atualiza a barra de Risco de Incêndio
-        barraIncendio.setValue(novoIncendio);
-        barraIncendio.setString(novoIncendio + "%");
+        painel.add(label);
+        painel.add(Box.createVerticalStrut(5));
+        painel.add(barra);
+        painel.add(Box.createVerticalStrut(25));
 
-        // Atualiza a barra de Nível do Rio
-        barraRio.setValue(novoRio);
-        barraRio.setString(novoRio + "%");
-
-        // Adiciona um aviso no log para o usuário saber que a atualização ocorreu
-        areaChat.append("🔄 [Sistema]: Leituras locais atualizadas (Simulação).\n");
+        return barra;
     }
 
-    private void inicializarPainelChat() {
-        JPanel painelCentral = new JPanel(new BorderLayout(10, 10));
-        painelCentral.setBackground(corFundo);
+    // ====================================================================
+    // PAINEL DIREITO (Chat e Contato com a Central)
+    // ====================================================================
+    private JPanel criarPainelDireito() {
+        JPanel painel = new JPanel(new BorderLayout(0, 15));
+        painel.setBackground(corFundo);
+        painel.setBorder(new EmptyBorder(30, 10, 30, 30)); // Margens para desgrudar da borda
 
-        JLabel tituloChat = new JLabel("Contato com a Central");
-        tituloChat.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        tituloChat.setForeground(corTextoPadrao);
-        painelCentral.add(tituloChat, BorderLayout.NORTH);
+        // Título Superior
+        JLabel lblContato = new JLabel("Contato com a Central");
+        lblContato.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblContato.setForeground(Color.BLACK);
 
+        // Área do Chat (JTextArea branco com borda)
         areaChat = new JTextArea();
         areaChat.setEditable(false);
-        areaChat.setBackground(corPainel);
-        areaChat.setForeground(corTextoPadrao);
         areaChat.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         areaChat.setLineWrap(true);
         areaChat.setWrapStyleWord(true);
-        areaChat.setBorder(new EmptyBorder(10, 10, 10, 10));
+        areaChat.setMargin(new Insets(10, 10, 10, 10));
+        areaChat.setText("📄 [Sistema]: Conexão estabelecida com o Servidor Central.\n" +
+                         "📄 [Sistema]: Monitoramento M2M ativado. Aguardando leituras...\n\n");
+        JScrollPane scrollChat = new JScrollPane(areaChat);
+        scrollChat.setBorder(BorderFactory.createLineBorder(new Color(180, 200, 180), 1));
 
-        areaChat.append("🟢 [Sistema]: Conexão estabelecida com o Servidor Central.\n");
-        areaChat.append("🟢 [Sistema]: Monitoramento M2M ativado. Aguardando leituras...\n\n");
+        // --- Painel Inferior (Input e Botões) ---
+        JPanel painelInput = new JPanel(new BorderLayout(10, 0));
+        painelInput.setBackground(corFundo);
 
-        JScrollPane scrollPane = new JScrollPane(areaChat);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220), 1, true));
-        painelCentral.add(scrollPane, BorderLayout.CENTER);
-
-        JPanel painelAcoes = new JPanel(new BorderLayout(10, 0));
-        painelAcoes.setBackground(corFundo);
-
-        campoMensagem = new JTextField("Escreva uma mensagem para a Central...");
-        campoMensagem.setForeground(Color.GRAY);
+        // Campo de Mensagem (Usando funcionalidade de placeholder do FlatLaf)
+        campoMensagem = new JTextField();
         campoMensagem.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+        campoMensagem.putClientProperty("JTextField.placeholderText", "Escreva uma mensagem para a Central...");
         campoMensagem.setPreferredSize(new Dimension(0, 40));
 
-        campoMensagem.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (campoMensagem.getText().equals("Escreva uma mensagem para a Central...")) {
-                    campoMensagem.setText("");
-                    campoMensagem.setForeground(corTextoPadrao);
-                    campoMensagem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-                }
-            }
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (campoMensagem.getText().isEmpty()) {
-                    campoMensagem.setForeground(Color.GRAY);
-                    campoMensagem.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-                    campoMensagem.setText("Escreva uma mensagem para a Central...");
-                }
-            }
-        });
-
+        // Área dos Botões (Direita do Input)
         JPanel painelBotoes = new JPanel(new GridLayout(1, 2, 10, 0));
         painelBotoes.setBackground(corFundo);
 
-        btnEnviar = new JButton("Enviar Alerta");
-        btnEnviar.setBackground(corVerdePrincipal);
-        btnEnviar.setForeground(Color.WHITE);
-        btnEnviar.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnEnviar.setFocusPainted(false);
-        btnEnviar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnSubmeterLaudo = new JButton("Submeter Laudo");
+        btnSubmeterLaudo.setBackground(corBotaoLaudo);
+        btnSubmeterLaudo.setForeground(Color.WHITE);
+        btnSubmeterLaudo.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnSubmeterLaudo.setFocusPainted(false);
+        btnSubmeterLaudo.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        btnAnexar = new JButton("Submeter Laudo");
-        btnAnexar.setBackground(new Color(59, 130, 246));
-        btnAnexar.setForeground(Color.WHITE);
-        btnAnexar.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnAnexar.setFocusPainted(false);
-        btnAnexar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnEnviarAlerta = new JButton("Enviar Alerta");
+        btnEnviarAlerta.setBackground(corBotaoAlerta);
+        btnEnviarAlerta.setForeground(Color.WHITE);
+        btnEnviarAlerta.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnEnviarAlerta.setFocusPainted(false);
+        btnEnviarAlerta.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        btnEnviar.addActionListener(e -> {
-            String msg = campoMensagem.getText();
-            if (!msg.isEmpty() && !msg.equals("Escreva uma mensagem para a Central...")) {
-                areaChat.append("📤 [Você]: " + msg + "\n");
-                campoMensagem.setText("");
+        painelBotoes.add(btnSubmeterLaudo);
+        painelBotoes.add(btnEnviarAlerta);
+
+        painelInput.add(campoMensagem, BorderLayout.CENTER);
+        painelInput.add(painelBotoes, BorderLayout.EAST);
+
+        // Eventos
+        configurarEventos();
+
+        painel.add(lblContato, BorderLayout.NORTH);
+        painel.add(scrollChat, BorderLayout.CENTER);
+        painel.add(painelInput, BorderLayout.SOUTH);
+
+        return painel;
+    }
+
+    private void configurarEventos() {
+        // Envio de Mensagem (Para o Mei conectar nos Sockets)
+        Action acaoEnviar = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String msg = campoMensagem.getText().trim();
+                if (!msg.isEmpty()) {
+                    areaChat.append("Você: " + msg + "\n");
+                    campoMensagem.setText("");
+
+                    // AQUI O MEI COLOCA O CÓDIGO DE ENVIO DO SOCKET (out.println(msg))
+                }
+            }
+        };
+
+        btnEnviarAlerta.addActionListener(acaoEnviar);
+        campoMensagem.addActionListener(acaoEnviar); // Envia ao apertar Enter
+
+        // Evento de Submeter Laudo
+        btnSubmeterLaudo.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            if(fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                String nome = fileChooser.getSelectedFile().getName();
+                areaChat.append("📎 [Arquivo]: Enviando laudo '" + nome + "' para a central...\n");
+
+                // AQUI O MEI COLOCA O CÓDIGO DE ENVIO DE ARQUIVO (File Transfer / GZIP)
             }
         });
+    }
 
-        btnAnexar.addActionListener(e -> {
-            areaChat.append("📎 [Sistema]: Preparando envio de arquivo PDF/Excel...\n");
-        });
-
-        painelBotoes.add(btnAnexar);
-        painelBotoes.add(btnEnviar);
-
-        painelAcoes.add(campoMensagem, BorderLayout.CENTER);
-        painelAcoes.add(painelBotoes, BorderLayout.EAST);
-
-        painelCentral.add(painelAcoes, BorderLayout.SOUTH);
-
-        add(painelCentral, BorderLayout.CENTER);
-
-
+    // Efeito visual aleatório para a apresentação do trabalho
+    private void simularMudancaDeSensores() {
+        progressoAr.setValue((int) (Math.random() * 100));
+        progressoFogo.setValue((int) (Math.random() * 100));
+        progressoAgua.setValue((int) (Math.random() * 100));
     }
 
     public static void main(String[] args) {
-        try {
-            UIManager.setLookAndFeel(new FlatLightLaf());
-        } catch (Exception e) {
-            System.err.println("Falha ao carregar o FlatLightLaf. " + e.getMessage());
-        }
-
-        SwingUtilities.invokeLater(() -> {
-            TelaCliente tela = new TelaCliente();
-            tela.setVisible(true);
-        });
+        // Aplica o tema Light do FlatLaf para ficar moderno igual à imagem
+        FlatLightLaf.setup();
+        SwingUtilities.invokeLater(() -> new TelaCliente().setVisible(true));
     }
 }
