@@ -15,7 +15,7 @@ public class Servidor {
         System.out.println ("Servidor rodando na porta " + PORTA);
         System.out.println ("Aguardando conexão...");
 
-        //Loop Infinitoo - o servidor fica sempre rodando, esperando clientes se conectarem
+        //Loop Infinito - o servidor fica sempre rodando, esperando clientes se conectarem
         while (true) {
 
             //Espera um cliente conectar

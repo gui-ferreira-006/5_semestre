@@ -63,7 +63,7 @@ public class Cliente {
                 while ((mensagem = entrada.readLine ()) != null) {
                     
                     //Verifica se é um arquivo chegando
-                    if (mensagem.startsWith ("ARQUIVO: ")) {
+                    if (mensagem.startsWith ("ARQUIVO:")) {
 
                         //Formato: ARQUIVO: <nome>:<tamanho>
                         String[] partes = mensagem.split (":");
@@ -130,7 +130,7 @@ public class Cliente {
                 }
 
                 //Avisa o servidor: nome e tamanho do arquivo
-                saida.println ("ARQUIVO: " + arquivo.getName() + ":" + arquivo.length());
+                saida.println ("ARQUIVO:" + arquivo.getName() + ":" + arquivo.length());
 
                 //Envia os bytes do arquivo
                 FileInputStream fis = new FileInputStream (arquivo);

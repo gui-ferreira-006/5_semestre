@@ -75,6 +75,7 @@ public class ClienteHandler implements Runnable {
             saida.println ("/lista                        -> Mostra a lista de clientes conectados");
             saida.println ("/p <nome> <mensagem>          -> mensagem privada para um cliente específico");
             saida.println ("<mensagem>                    -> envia para todos os clientes conectados");
+            saida.println ("/arquivo <caminho>            -> envia um arquivo para todos");
 
             //Loop principal, lê mensagen enquanto cliente estiver conectados
             String mensagem;
@@ -132,7 +133,7 @@ public class ClienteHandler implements Runnable {
         //Exemplo: /p Maria olá!
         String [] partes = mensagem.split (" ", 3);
 
-        //Veerifica se o comando foi digitado corretamente
+        //Verifica se o comando foi digitado corretamente
         if (partes.length < 3) {
             saida.println ("[Servidor] Formato correto: /p <nome> <mensagem>");
             return;
