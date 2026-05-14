@@ -6,26 +6,32 @@ import java.net.*;
 
 public class Servidor {
 
+    static final int PORTA = 65173;
+
     public static void main (String [] args) throws IOException {
 
+        //Abre uma "porta" para escutar as conexões dos clientes
+        ServerSocket serverSocket = new ServerSocket (PORTA);
+        System.out.println ("Servidor rodando na porta " + PORTA);
+        System.out.println ("Aguardando conexão...");
 
-        ServerSocket serverSocket = new ServerSocket (65173);
-        System.out.println ("Aguardando conexão na porta 65173...");
+        //Loop Infinitoo - o servidor fica sempre rodando, esperando clientes se conectarem
+        while (true) {
 
-        Socket socket = serverSocket.accept();
-        System.out.println ("Conectado ao servidor com sucesso!");
+            //Espera um cliente conectar
+            Socket socket = serverSocket.accept();
+            System.out.println ("Novo cliente conectado ao servidor: " + socket.getInetAddress());
 
-        BufferedReader entrada = new BufferedReader (new InputStreamReader (socket.getInputStream()));
+            //Cria um handler (garçom) para esse cliente
+            ClienteHandler handler = new ClienteHandler (socket);
+            
+            //Cria um Thread e passa o handler para ela 
+            Thread thread = new Thread (handler);
 
-        PrintWriter saida = new PrintWriter (socket.getOutputStream (), true);
+            //Inicia a Thread, ela começa a rodar o método run() do handler
+            thread.start();
 
-        String mensagem = entrada.readLine ();
-        System.out.println ("You: " + mensagem);
-
-        saida.println ("Sua mensagem foi recebida com sucesso!");
-
-        socket.close ();
-        serverSocket.close ();
+        }
 
     }
     
