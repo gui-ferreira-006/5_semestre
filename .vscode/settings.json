@@ -1,0 +1,6 @@
+{
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "APS_Redes_IA/lib/flatlaf-3.4.1.jar"
+    ]
+}
