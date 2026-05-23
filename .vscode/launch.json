@@ -16,6 +16,41 @@
             "name": "TelaServidor",
             "request": "launch",
             "mainClass": "gui.TelaServidor",
+            "projectName": "5_semestre_35745abd"
+        },
+        {
+            "type": "java",
+            "name": "TelaLogin",
+            "request": "launch",
+            "mainClass": "gui.TelaLogin",
+            "projectName": "5_semestre_35745abd"
+        },
+        {
+            "type": "java",
+            "name": "TelaCliente",
+            "request": "launch",
+            "mainClass": "gui.TelaCliente",
+            "projectName": "5_semestre_35745abd"
+        },
+        {
+            "type": "java",
+            "name": "Cliente",
+            "request": "launch",
+            "mainClass": "core.Cliente",
+            "projectName": "5_semestre_6b4c2ed8"
+        },
+        {
+            "type": "java",
+            "name": "Servidor",
+            "request": "launch",
+            "mainClass": "core.Servidor",
+            "projectName": "5_semestre_6b4c2ed8"
+        },
+        {
+            "type": "java",
+            "name": "TelaServidor",
+            "request": "launch",
+            "mainClass": "gui.TelaServidor",
             "projectName": "5_semestre_21724240"
         },
         {
