@@ -2,10 +2,14 @@ package gui;
 
 import Persistencia.UsuarioDAOSql;
 import com.formdev.flatlaf.FlatLightLaf;
+
+import core.ConexaoCliente;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.io.IOException;
 
 
 public class TelaLogin extends JFrame {
@@ -171,6 +175,89 @@ public class TelaLogin extends JFrame {
             }
         });
 
+
+            //Apatir daqui
+            String ip = campoIpServidor.getText().trim();
+            String usuario = campoCredencial.getText().trim();
+            String senha = new String (campoSenha.getPassword()).trim();
+
+            if (ip.isEmpty() || usuario.isEmpty() || senha.isEmpty()) {
+                JOptionPane.showMessageDialog (this,
+                    "Por favor, preencha todos os campos!",
+                    "Aviso", JOptionPane.WARNING_MESSAGE);
+                    return;
+            }
+
+            lblStatus.setForeground (new Color (200, 100, 0));
+            lblStatus.setText ("Status: Conectando em " + ip + "...");
+            
+            //Tenta conectar em uma Thread separada para não travvar a tela
+            new Thread (() -> {
+                ConexaoCliente conexao = new ConexaoCliente();
+
+                if (!conexao.conectar (ip, 65173)) {
+                    SwingUtilities.invokeLater (() -> {
+                        lblStatus.setForeground (Color.RED);
+                        lblStatus.setText ("Status: Servidor não encontrado!");;
+                        JOptionPane.showMessageDialog (this,
+                            "Não foi ppossível conectar ao servidor.\nVerifique o IP e tente novamente.",
+                            "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
+                        
+                    });
+
+                    return;
+
+                }
+
+                try{
+
+                    //Lê a mensagem de boas vindas do servidor
+                    conexao.receberMensagem(); // ╔══...
+                    conexao.receberMensagem(); // ║ Bem-Vindo
+                    conexao.receberMensagem(); // ╚══...
+
+
+                    conexao.receberMensagem();
+                    conexao.enviarMensagem(usuario);
+                    conexao.receberMensagem();
+                    conexao.enviarMensagem(senha);
+
+                    //Lê a resposta do login
+                    String resposta = conexao.receberMensagem();
+
+                    if (resposta != null && resposta.contains ("sucesso")) {
+
+                        //Login aprovado!
+                        SwingUtilities.invokeLater (() -> {
+                            lblStatus.setForeground (new Color (16, 185, 129));
+                            lblStatus.setText ("Status: Conexão Estabelecida!");
+                        });
+                    }
+
+                    else {
+
+                        SwingUtilities.invokeLater(() -> {
+                            lblStatus.setForeground (Color.RED);
+                            lblStatus.setText ("Status: Usuário ou senha incorretos!");
+                            JOptionPane.showMessageDialog (this,
+                                "Usuário ou senha incorretos!", "erro de Autenticação", JOptionPane.ERROR_MESSAGE);
+                        
+                        });
+
+                        conexao.desconectar();
+                    }
+
+                }
+
+                catch (IOException ex) {
+                    SwingUtilities.invokeLater (() -> {
+                        lblStatus.setForeground (Color.RED);
+                        lblStatus.setText ("Status: Erro na comunicação!");
+                    });
+                }
+            });
+
+            
 
             /* ================================================================================
             Prestem atenção: aqui é aonde a lógica do Back-end entra em cena
