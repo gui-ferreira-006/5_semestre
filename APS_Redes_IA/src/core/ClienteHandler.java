@@ -11,6 +11,24 @@ public class ClienteHandler implements Runnable {
     private Socket socket;
     private String nomeCliente;
     private PrintWriter saida;
+    private static LogServidor logger;
+
+     //Construtor: recebe o socket do cliente que se conectou
+    public ClienteHandler (Socket socket) {
+        this.socket = socket;
+    }
+
+    public static void setLogger (LogServidor log) {
+        logger = log;
+    }
+
+    private void log (String mensagem){
+        if (logger != null) {
+            logger.log (mensagem);
+        } else {
+            System.out.println (mensagem);
+        }
+    }
 
     //Lista compartilhada de todos os clientes conectados
     private static List <ClienteHandler> clientesConectados = new ArrayList<>();
@@ -21,13 +39,6 @@ public class ClienteHandler implements Runnable {
     //Retorna a hora atual formatada
     private static String agora() {
         return "[" + LocalDateTime.now().format(FORMATO) + "]";
-
-    }
-    
-
-    //Construtor: recebe o socket do cliente que se conectou
-    public ClienteHandler (Socket socket) {
-        this.socket = socket;
 
     }
 
@@ -49,22 +60,28 @@ public class ClienteHandler implements Runnable {
 
             nomeCliente = usuario;
 
+
             if (nomeJaExiste(nomeCliente)) {
                 saida.println("[Sistema]: Erro - Este usuário já está conectado em outra sessão!");
                 socket.close();
                 return;
             }
+          
+            if (logger != null) logger.clienteLogado (socket.getInetAddress().toString(), nomeCliente);
+
 
             // Adiciona esse cliente na lista de conectados
             clientesConectados.add(this);
-            System.out.println(agora() + " " + nomeCliente + " conectou-se via Terminal de Campo");
 
-            // Mensagem de boas vindas limpa
-            saida.println("--------------------------------------");
+            // Integração: Usa o log do Mei em vez do System.out.println
+            log(agora() + " " + " conectou-se via Terminal de Campo");
+          
+            // Mensagem de boas vindas limpa (A sua versão do Front-end)
+            saida.println("-------------------------------------");
             saida.println("[Central]: Bem vindo à rede de monitoramento, " + nomeCliente + "!");
             saida.println("[Central]: Digite /lista para ver os comandos ou /arquivo para laudos.");
             saida.println("--------------------------------------");
-
+          
             // Avisa os outros
             enviarParaTodos(agora() + " [Sistema]: " + nomeCliente + " entrou no chat operacional.");
 
@@ -107,7 +124,7 @@ public class ClienteHandler implements Runnable {
                 }
 
                 else {
-                    System.out.println (agora() + " " + nomeCliente + ": " + mensagem);
+                    log (agora() + " " + nomeCliente + ": " + mensagem);
                     enviarParaTodos (agora() + " [" + nomeCliente + "] " + mensagem);
 
                 }
@@ -118,7 +135,7 @@ public class ClienteHandler implements Runnable {
 
             if (nomeCliente != null) {
 
-                System.out.println (agora() + " " + nomeCliente + " perdeu a conexão.");
+                log (agora() + " " + nomeCliente + " perdeu a conexão.");
                 
             }
 
@@ -213,7 +230,7 @@ public class ClienteHandler implements Runnable {
             String nomeArquivo = partes[1];
             long tamanho = Long.parseLong(partes[2]);
 
-            System.out.println (agora() + "[Servidor] Recebendo arquivo de: " + nomeCliente + ": " + nomeArquivo + " (" + tamanho + " bytes)");
+            log (agora() + "[Servidor] Recebendo arquivo de: " + nomeCliente + ": " + nomeArquivo + " (" + tamanho + " bytes)");
 
             DataInputStream entradaBytes = new DataInputStream (socket.getInputStream());
 
@@ -221,7 +238,7 @@ public class ClienteHandler implements Runnable {
             byte[] dados = new byte [(int) tamanho];
             entradaBytes.readFully(dados);
 
-            System.out.println(agora() + "[Servidor] Arquivo recebido! Repassando para os outros clientes...");
+            log(agora() + "[Servidor] Arquivo recebido! Repassando para os outros clientes...");
 
             //Repassa para todos os outros clientes
             repassarArquivoParaTodos (nomeArquivo, dados);
@@ -229,7 +246,7 @@ public class ClienteHandler implements Runnable {
         }
 
         catch (IOException e) {
-            System.out.println ("[!] Erro ao receber arquivo: " + e.getMessage());
+            log ("[!] Erro ao receber arquivo: " + e.getMessage());
 
         }
     }
@@ -252,7 +269,7 @@ public class ClienteHandler implements Runnable {
                 }
 
                 catch (IOException e) {
-                    System.out.println ("[!] Erro ao repassar arquivo: " + e.getMessage());
+                    log ("[!] Erro ao repassar arquivo: " + e.getMessage());
                 }
             }
         }
