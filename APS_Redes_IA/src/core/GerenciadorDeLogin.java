@@ -1,4 +1,4 @@
-package core;
+/*package core;
 
 import java.io.*;
 
@@ -52,3 +52,4 @@ public class GerenciadorDeLogin {
     
     
 
+*/
