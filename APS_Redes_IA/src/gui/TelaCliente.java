@@ -1,6 +1,9 @@
 package gui;
 
 import com.formdev.flatlaf.FlatLightLaf;
+
+import core.ConexaoCliente;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -27,8 +30,12 @@ public class TelaCliente extends JFrame {
     private JTextField campoMensagem;
     private JButton btnEnviarAlerta;
     private JButton btnSubmeterLaudo;
+    private ConexaoCliente conexaoRede;
 
-    public TelaCliente() {
+    public TelaCliente(ConexaoCliente conexao) {
+
+        this.conexaoRede = conexao;
+
         setTitle("Base de Monitoramento - Terminal de Campo");
         setSize(950, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -241,6 +248,6 @@ public class TelaCliente extends JFrame {
     public static void main(String[] args) {
         // Aplica o tema Light do FlatLaf para ficar moderno igual à imagem
         FlatLightLaf.setup();
-        SwingUtilities.invokeLater(() -> new TelaCliente().setVisible(true));
+        SwingUtilities.invokeLater(() -> new TelaCliente(null).setVisible(true));
     }
 }

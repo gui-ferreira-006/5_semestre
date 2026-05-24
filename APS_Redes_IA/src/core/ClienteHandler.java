@@ -5,6 +5,7 @@ import java.net.*;
 import java.time.*;
 import java.time.format.*;
 import java.util.*;
+import Persistencia.UsuarioDAOSql;
 
 public class ClienteHandler implements Runnable {
 
@@ -42,6 +43,8 @@ public class ClienteHandler implements Runnable {
             saida.println("║     Bem-Vindo ao Chat!       ║");
             saida.println("╚══════════════════════════════╝");
             
+            UsuarioDAOSql dao = new UsuarioDAOSql();
+
             saida.println ("Digite seu usuário: ");
             String usuario = entrada.readLine();
 
@@ -50,7 +53,7 @@ public class ClienteHandler implements Runnable {
 
             //Tenta o login até 3 vezes
             int tentativas = 1;
-            while (!GerenciadorDeLogin.verificarLogin (usuario, senha)) {
+            while (!dao.autenticar (usuario, senha)) {
 
                 if (tentativas >= 3) {
                    saida.println ("╔══════════════════════════════════════════╗");
