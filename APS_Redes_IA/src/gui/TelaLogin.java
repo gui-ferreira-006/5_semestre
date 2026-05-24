@@ -161,7 +161,7 @@ public class TelaLogin extends JFrame {
 
                             // TRANSIÇÃO DE TELA (O SUCESSO DO SISTEMA)
                             dispose();
-                            new TelaCliente(conexao).setVisible(true); // Abre a tela do cliente
+                            new TelaCliente(conexao, usuarioDigitado).setVisible(true); // Abre a tela do cliente
 
                         } else {
                             lblStatus.setForeground(Color.RED);

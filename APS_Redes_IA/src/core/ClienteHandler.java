@@ -1,18 +1,10 @@
 package core;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.Socket;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-
-import Persistencia.UsuarioDAOSql;
+import java.io.*;
+import java.net.*;
+import java.time.*;
+import java.time.format.*;
+import java.util.*;
 
 public class ClienteHandler implements Runnable {
 
@@ -56,64 +48,43 @@ public class ClienteHandler implements Runnable {
             BufferedReader entrada = new BufferedReader (new InputStreamReader(socket.getInputStream()));
             saida = new PrintWriter (socket.getOutputStream(), true);
 
-            //Pede o nome do cliente para verificar se já existem alguém com esse nome
-            saida.println("╔══════════════════════════════╗");
-            saida.println("║     Bem-Vindo ao Chat!       ║");
-            saida.println("╚══════════════════════════════╝");
-            
-            UsuarioDAOSql dao = new UsuarioDAOSql();
-
-            saida.println ("Digite seu usuário: ");
+            // ==================================================================
+            // Integração com a Interface Gráfica
+            // ==================================================================
             String usuario = entrada.readLine();
 
-            saida.println ("Digite sua senha: ");
-            String senha = entrada.readLine();
-
-            //Tenta o login até 3 vezes
-            int tentativas = 1;
-            while (!dao.autenticar (usuario, senha)) {
-
-                if (tentativas >= 3) {
-                   saida.println ("╔══════════════════════════════════════════╗");
-                   saida.println ("║  Número de tentativas excedido!          ║");
-                   saida.println ("║  Você foi desconectado por segurança.    ║");
-                   saida.println ("╚══════════════════════════════════════════╝");
-                   socket.close();
-                   return;
-
-                }
-
-                saida.println ("[!] Usuário ou senha incorretos! Tentativa " + tentativas + " de 3.");
-                saida.println ("Digite seu usuário: ");
-                usuario = entrada.readLine();
-                saida.println ("Digite sua senha: ");
-                senha = entrada.readLine();
-                tentativas++;
-
+            if (usuario == null || usuario.trim().isEmpty()) {
+                socket.close();
+                return;
             }
 
-            //Login aprovado!
             nomeCliente = usuario;
 
+
+            if (nomeJaExiste(nomeCliente)) {
+                saida.println("[Sistema]: Erro - Este usuário já está conectado em outra sessão!");
+                socket.close();
+                return;
+            }
+          
             if (logger != null) logger.clienteLogado (socket.getInetAddress().toString(), nomeCliente);
 
-            saida.println ("╔══════════════════════════════════════════╗");
-            saida.println ("║  Login realizado com sucesso!            ║");
-            saida.println ("║  Bem vindo, " + nomeCliente + "!" + " ".repeat(Math.max(0, 28 - nomeCliente.length())) + "║");
-            saida.println ("╚══════════════════════════════════════════╝");
 
-            //===== CHAT =====
-            //Verifica se já está conectado com esse usuário
-            while (nomeJaExiste(nomeCliente)) {
-                saida.println ("[!] Este usuário já está conectado em outra sessão!");
-                socket.close();
-                return; 
-            }
-
-            //Adiciona esse cliente na lista de conectados
+            // Adiciona esse cliente na lista de conectados
             clientesConectados.add(this);
-            log (agora() + " " + nomeCliente + " entrou no chat!");
-            enviarParaTodos(agora() + "[Servidor] " + nomeCliente + " entrou no chat!");
+
+            // Integração: Usa o log do Mei em vez do System.out.println
+            log(agora() + " " + " conectou-se via Terminal de Campo");
+          
+            // Mensagem de boas vindas limpa (A sua versão do Front-end)
+            saida.println("-------------------------------------");
+            saida.println("[Central]: Bem vindo à rede de monitoramento, " + nomeCliente + "!");
+            saida.println("[Central]: Digite /lista para ver os comandos ou /arquivo para laudos.");
+            saida.println("--------------------------------------");
+          
+            // Avisa os outros
+            enviarParaTodos(agora() + " [Sistema]: " + nomeCliente + " entrou no chat operacional.");
+
 
             //Mostra os comandos disponíveis para o cliente utilizar
             
