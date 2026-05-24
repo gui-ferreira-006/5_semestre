@@ -116,14 +116,14 @@ public class ClienteHandler implements Runnable {
             enviarParaTodos(agora() + "[Servidor] " + nomeCliente + " entrou no chat!");
 
             //Mostra os comandos disponíveis para o cliente utilizar
-            saida.println ("──────────────────────────────────────────");
-            saida.println ("Comandos Disponíveis: ");
-            saida.println ("/lista                        -> Mostra a lista de clientes conectados");
+            
+            saida.println ("\nComandos Disponíveis: ");
+            saida.println ("\n/lista                        -> Mostra a lista de clientes conectados");
             saida.println ("/p <nome> <mensagem>          -> mensagem privada para um cliente específico");
             saida.println ("<mensagem>                    -> envia para todos os clientes conectados");
             saida.println ("/arquivo <caminho>            -> envia um arquivo para todos");
             saida.println ("/sair                         -> Desconectar do chat");
-            saida.println ("──────────────────────────────────────────");
+        
 
             //Loop principal, lê mensagen enquanto cliente estiver conectados
             String mensagem;
