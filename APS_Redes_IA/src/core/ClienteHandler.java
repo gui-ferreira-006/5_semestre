@@ -1,10 +1,17 @@
 package core;
 
-import java.io.*;
-import java.net.*;
-import java.time.*;
-import java.time.format.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+
 import Persistencia.UsuarioDAOSql;
 
 public class ClienteHandler implements Runnable {
@@ -12,6 +19,24 @@ public class ClienteHandler implements Runnable {
     private Socket socket;
     private String nomeCliente;
     private PrintWriter saida;
+    private static LogServidor logger;
+
+     //Construtor: recebe o socket do cliente que se conectou
+    public ClienteHandler (Socket socket) {
+        this.socket = socket;
+    }
+
+    public static void setLogger (LogServidor log) {
+        logger = log;
+    }
+
+    private void log (String mensagem){
+        if (logger != null) {
+            logger.log (mensagem);
+        } else {
+            System.out.println (mensagem);
+        }
+    }
 
     //Lista compartilhada de todos os clientes conectados
     private static List <ClienteHandler> clientesConectados = new ArrayList<>();
@@ -22,13 +47,6 @@ public class ClienteHandler implements Runnable {
     //Retorna a hora atual formatada
     private static String agora() {
         return "[" + LocalDateTime.now().format(FORMATO) + "]";
-
-    }
-    
-
-    //Construtor: recebe o socket do cliente que se conectou
-    public ClienteHandler (Socket socket) {
-        this.socket = socket;
 
     }
 
@@ -76,6 +94,9 @@ public class ClienteHandler implements Runnable {
 
             //Login aprovado!
             nomeCliente = usuario;
+
+            if (logger != null) logger.clienteLogado (socket.getInetAddress().toString(), nomeCliente);
+
             saida.println ("╔══════════════════════════════════════════╗");
             saida.println ("║  Login realizado com sucesso!            ║");
             saida.println ("║  Bem vindo, " + nomeCliente + "!" + " ".repeat(Math.max(0, 28 - nomeCliente.length())) + "║");
@@ -91,7 +112,7 @@ public class ClienteHandler implements Runnable {
 
             //Adiciona esse cliente na lista de conectados
             clientesConectados.add(this);
-            System.out.println (agora() + " " + nomeCliente + " entrou no chat!");
+            log (agora() + " " + nomeCliente + " entrou no chat!");
             enviarParaTodos(agora() + "[Servidor] " + nomeCliente + " entrou no chat!");
 
             //Mostra os comandos disponíveis para o cliente utilizar
@@ -132,7 +153,7 @@ public class ClienteHandler implements Runnable {
                 }
 
                 else {
-                    System.out.println (agora() + " " + nomeCliente + ": " + mensagem);
+                    log (agora() + " " + nomeCliente + ": " + mensagem);
                     enviarParaTodos (agora() + " [" + nomeCliente + "] " + mensagem);
 
                 }
@@ -143,7 +164,7 @@ public class ClienteHandler implements Runnable {
 
             if (nomeCliente != null) {
 
-                System.out.println (agora() + " " + nomeCliente + " perdeu a conexão.");
+                log (agora() + " " + nomeCliente + " perdeu a conexão.");
                 
             }
 
@@ -238,7 +259,7 @@ public class ClienteHandler implements Runnable {
             String nomeArquivo = partes[1];
             long tamanho = Long.parseLong(partes[2]);
 
-            System.out.println (agora() + "[Servidor] Recebendo arquivo de: " + nomeCliente + ": " + nomeArquivo + " (" + tamanho + " bytes)");
+            log (agora() + "[Servidor] Recebendo arquivo de: " + nomeCliente + ": " + nomeArquivo + " (" + tamanho + " bytes)");
 
             DataInputStream entradaBytes = new DataInputStream (socket.getInputStream());
 
@@ -246,7 +267,7 @@ public class ClienteHandler implements Runnable {
             byte[] dados = new byte [(int) tamanho];
             entradaBytes.readFully(dados);
 
-            System.out.println(agora() + "[Servidor] Arquivo recebido! Repassando para os outros clientes...");
+            log(agora() + "[Servidor] Arquivo recebido! Repassando para os outros clientes...");
 
             //Repassa para todos os outros clientes
             repassarArquivoParaTodos (nomeArquivo, dados);
@@ -254,7 +275,7 @@ public class ClienteHandler implements Runnable {
         }
 
         catch (IOException e) {
-            System.out.println ("[!] Erro ao receber arquivo: " + e.getMessage());
+            log ("[!] Erro ao receber arquivo: " + e.getMessage());
 
         }
     }
@@ -277,7 +298,7 @@ public class ClienteHandler implements Runnable {
                 }
 
                 catch (IOException e) {
-                    System.out.println ("[!] Erro ao repassar arquivo: " + e.getMessage());
+                    log ("[!] Erro ao repassar arquivo: " + e.getMessage());
                 }
             }
         }
