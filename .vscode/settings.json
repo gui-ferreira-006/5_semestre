@@ -1,6 +1,7 @@
 {
     "java.project.referencedLibraries": [
         "lib/**/*.jar",
-        "APS_Redes_IA/lib/flatlaf-3.4.1.jar"
+        "APS_Redes_IA/lib/flatlaf-3.4.1.jar",
+        "c:\\Users\\Guilherme\\Downloads\\mysql-connector-j-9.6.0\\mysql-connector-j-9.6.0\\mysql-connector-j-9.6.0.jar"
     ]
 }

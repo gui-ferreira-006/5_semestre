@@ -1,10 +1,15 @@
 package gui;
 
 import com.formdev.flatlaf.FlatLightLaf;
+
+import core.ConexaoCliente;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.io.*;
+import core.ConexaoCliente;
 
 public class TelaCliente extends JFrame {
 
@@ -27,8 +32,20 @@ public class TelaCliente extends JFrame {
     private JTextField campoMensagem;
     private JButton btnEnviarAlerta;
     private JButton btnSubmeterLaudo;
+  
+  
+    private ConexaoCliente conexaoRede;
 
-    public TelaCliente() {
+    public TelaCliente(ConexaoCliente conexao) {
+
+        this.conexaoRede = conexao;
+
+
+    private ConexaoCliente conexao;
+
+    public TelaCliente(ConexaoCliente conexao) {
+        this.conexao = conexao;
+      
         setTitle("Base de Monitoramento - Terminal de Campo");
         setSize(950, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -41,6 +58,10 @@ public class TelaCliente extends JFrame {
         // Criando a divisão em dois painéis (Esquerdo e Direito)
         add(criarPainelEsquerdo(), BorderLayout.WEST);
         add(criarPainelDireito(), BorderLayout.CENTER);
+
+        //Inicia a Thread de recebimento de mensagens
+        iniciarRecepcao();
+
     }
 
     // ==================================================================
@@ -201,14 +222,89 @@ public class TelaCliente extends JFrame {
         return painel;
     }
 
+    //Thread que fica recebendo mensagens do servidor
+    private void iniciarRecepcao () {
+        new Thread(() -> {
+            try {
+                String mensagem;
+                while ((mensagem = conexao.receberMensagem()) != null) {
+                    final String msg = mensagem;
+
+                    if (msg.startsWith("ARQUIVO:")) {
+                        receberArquivo(msg);
+                        
+                    }
+
+                    else {
+                        SwingUtilities.invokeLater(() ->
+                            areaChat.append(msg + "\n")
+                        );
+                    }
+                }
+            }
+
+            catch (IOException e) {
+                SwingUtilities.invokeLater(() ->
+                    areaChat.append("[Sistema] Conexão encerrada.\n")
+                );
+            }
+        }).start();
+    }
+
+    //Recebe arquivo do Servidor
+    private void receberArquivo (String cabecalho) {
+        try {
+            
+            String[] partes = cabecalho.split(":");
+            String nomeArquivo = partes[1];
+            long tamanho = Long.parseLong(partes[2]);
+
+            SwingUtilities.invokeLater(() ->
+                areaChat.append("[Sistema] Recebendo arquivo: " + nomeArquivo + "\n")
+            );
+            
+            File pasta = new File ("recebidos");
+            if (!pasta.exists()) pasta.mkdirs();
+
+            File arquivo = new File ("recebidos/" + nomeArquivo);
+            FileOutputStream fos = new FileOutputStream(arquivo);
+            byte[] buffer = new byte [4096];
+            long totalLido = 0;
+            int lido;
+
+            while (totalLido < tamanho &&
+                (lido = conexao.getEntradaBytes().read(buffer, 0,
+                (int) Math.min (buffer.length, tamanho - totalLido))) != -1) {
+                    fos.write (buffer, 0, lido);
+                    totalLido += lido;        
+                }
+
+                fos.close();
+                SwingUtilities.invokeLater(() ->
+                    areaChat.append ("[Servidor] Arquivo salvo em: recebidos/" + nomeArquivo + "\n")
+                );
+
+        } 
+        
+        catch (IOException e) {
+            
+            SwingUtilities.invokeLater(() ->
+                areaChat.append("[Sistema] Erro ao receber arquivo.\n")
+            );
+        }
+    }
+        
+    
+
     private void configurarEventos() {
+
         // Envio de Mensagem (Para o Mei conectar nos Sockets)
         Action acaoEnviar = new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String msg = campoMensagem.getText().trim();
                 if (!msg.isEmpty()) {
-                    areaChat.append("Você: " + msg + "\n");
+                    conexao.enviarMensagem(msg);
                     campoMensagem.setText("");
 
                     // AQUI O MEI COLOCA O CÓDIGO DE ENVIO DO SOCKET (out.println(msg))
@@ -223,8 +319,22 @@ public class TelaCliente extends JFrame {
         btnSubmeterLaudo.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
             if(fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                String nome = fileChooser.getSelectedFile().getName();
-                areaChat.append("📎 [Arquivo]: Enviando laudo '" + nome + "' para a central...\n");
+                File arquivo = fileChooser.getSelectedFile();
+                areaChat.append("📎 [Arquivo]: Enviando laudo '" + arquivo.getName() + "' para a central...\n");
+                new Thread (() -> {
+                    try {
+                        conexao.enviarArquivo(arquivo);
+                        SwingUtilities.invokeLater(() ->
+                            areaChat.append("@ [Arquivo]: Arquivo enviado com sucesso!\n")
+                        );
+                    } 
+
+                    catch (IOException ex) {
+                        SwingUtilities.invokeLater(() -> 
+                            areaChat.append("@ [Arquivo]: Erro ao enviar arquivo. \n")
+                        );
+                    }
+                }).start();
 
                 // AQUI O MEI COLOCA O CÓDIGO DE ENVIO DE ARQUIVO (File Transfer / GZIP)
             }
@@ -238,9 +348,9 @@ public class TelaCliente extends JFrame {
         progressoAgua.setValue((int) (Math.random() * 100));
     }
 
-    public static void main(String[] args) {
+    //public static void main(String[] args) {
         // Aplica o tema Light do FlatLaf para ficar moderno igual à imagem
         FlatLightLaf.setup();
-        SwingUtilities.invokeLater(() -> new TelaCliente().setVisible(true));
+        SwingUtilities.invokeLater(() -> new TelaCliente(null).setVisible(true));
     }
 }
