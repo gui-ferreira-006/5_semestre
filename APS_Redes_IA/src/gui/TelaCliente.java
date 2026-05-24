@@ -58,7 +58,7 @@ public class TelaCliente extends JFrame {
 
     private ConexaoCliente conexao;
 
-    public TelaCliente(ConexaoCliente conexao) {
+    public TelaCliente(ConexaoCliente conexao, String nomeUsuario) {
         this.conexao = conexao;
       
         setTitle("Base de Monitoramento - Terminal de Campo");
@@ -76,6 +76,12 @@ public class TelaCliente extends JFrame {
 
         //Inicia a Thread de recebimento de mensagens
         iniciarRecepcao();
+
+        // Envia o nome do usuário assim que a tela abre, para o Servidor do Mei
+        // registrar sem precisar perguntar no chat!
+        if (this.conexao != null && this.conexao.estaConectado()) {
+            this.conexao.enviarMensagem(nomeUsuario);
+        } 
 
     }
 
@@ -333,7 +339,6 @@ public class TelaCliente extends JFrame {
                     conexao.enviarMensagem(msg);
                     campoMensagem.setText("");
 
-                    // AQUI O MEI COLOCA O CÓDIGO DE ENVIO DO SOCKET (out.println(msg))
                 }
             }
         };
@@ -362,7 +367,6 @@ public class TelaCliente extends JFrame {
                     }
                 }).start();
 
-                // AQUI O MEI COLOCA O CÓDIGO DE ENVIO DE ARQUIVO (File Transfer / GZIP)
             }
         });
     }
