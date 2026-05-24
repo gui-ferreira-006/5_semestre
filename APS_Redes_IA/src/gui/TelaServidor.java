@@ -5,9 +5,12 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.*;
 import java.awt.*;
+import java.io.IOException;
+
 import javax.swing.table.JTableHeader;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+
 public class TelaServidor extends JFrame {
 
     // Nova paleta de cores (Estética sugerida pela Julia)
@@ -18,6 +21,7 @@ public class TelaServidor extends JFrame {
     private final Color corStatusCiano = new Color(0, 229, 255); //Ciano brilhante para IP/Status
     private final Color corBotaoRoxo = new Color(165, 85, 160); // Roxo/Magenta do botão
     private final Color corCabecalhoTabela = new Color(199, 120, 214); // Roxo claro das colunas
+    private core.Servidor servidorCore;
 
     private JTextPane logEventos;
     private DefaultTableModel modelTabela; // Agora usando uma tabela em vez de Lista
@@ -154,6 +158,39 @@ public class TelaServidor extends JFrame {
         lateral.add(btnRelatorio, BorderLayout.SOUTH);
 
         return lateral;
+    }
+
+    public void iniciarServidor() {
+        new Thread (() -> {
+            
+            try {
+                java.net.ServerSocket serverSocket = new java.net.ServerSocket(65173);
+                adicionarLog (obterAgora() + " [Sistema] Servidor iniciado na porta 65173!");
+
+                while (true) {
+                    java.net.Socket socket = serverSocket.accept();
+                    String ip = socket.getInetAddress().toString();
+                    adicionarLog (obterAgora() + "[Conexão] Novo Cliente: " + ip);
+
+                    core.ClienteHandler handler = new core.ClienteHandler (socket);
+                    new Thread (handler).start();
+                    
+                }
+
+            } 
+            
+            catch (IOException e) {
+
+                adicionarLog("[ERRO] " + e.getMessage());
+        
+            }
+        }).start();
+    }
+
+    private String obterAgora () {
+        return "[" + java.time.LocalDateTime.now()
+            .format (java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")) + "]";
+    
     }
 
     // Método para adicionar logs coloridos (O que o Mei vai usar para mostrar os eventos)

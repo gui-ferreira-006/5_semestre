@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "TelaLogin",
+            "request": "launch",
+            "mainClass": "gui.TelaLogin",
+            "projectName": "5_semestre_8f9e3bcb"
+        },
+        {
+            "type": "java",
             "name": "TelaServidor",
             "request": "launch",
             "mainClass": "gui.TelaServidor",
