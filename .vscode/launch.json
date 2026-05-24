@@ -6,6 +6,55 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Cliente",
+            "request": "launch",
+            "mainClass": "core.Cliente",
+            "projectName": "5_semestre_8f9e3bcb"
+        },
+        {
+            "type": "java",
+            "name": "TelaServidor",
+            "request": "launch",
+            "mainClass": "gui.TelaServidor",
+            "projectName": "5_semestre_8f9e3bcb"
+        },
+        {
+            "type": "java",
+            "name": "TesteSistema",
+            "request": "launch",
+            "mainClass": "TesteSistema",
+            "projectName": "5_semestre_8f9e3bcb"
+        },
+        {
+            "type": "java",
+            "name": "Servidor",
+            "request": "launch",
+            "mainClass": "core.Servidor",
+            "projectName": "5_semestre_8f9e3bcb"
+        },
+        {
+            "type": "java",
+            "name": "TelaLogin",
+            "request": "launch",
+            "mainClass": "gui.TelaLogin",
+            "projectName": "5_semestre_5c94d056"
+        },
+        {
+            "type": "java",
+            "name": "Servidor",
+            "request": "launch",
+            "mainClass": "core.Servidor",
+            "projectName": "5_semestre_5c94d056"
+        },
+        {
+            "type": "java",
+            "name": "TesteSistema",
+            "request": "launch",
+            "mainClass": "TesteSistema",
+            "projectName": "5_semestre_5c94d056"
+        },
+        {
+            "type": "java",
             "name": "TelaLogin",
             "request": "launch",
             "mainClass": "gui.TelaLogin",

@@ -1,15 +1,38 @@
 package gui;
 
-import com.formdev.flatlaf.FlatLightLaf;
-
-import core.ConexaoCliente;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.border.EmptyBorder;
+
 import core.ConexaoCliente;
+
 
 public class TelaCliente extends JFrame {
 
@@ -32,18 +55,10 @@ public class TelaCliente extends JFrame {
     private JTextField campoMensagem;
     private JButton btnEnviarAlerta;
     private JButton btnSubmeterLaudo;
-  
-  
-    private ConexaoCliente conexaoRede;
-
-    public TelaCliente(ConexaoCliente conexao) {
-
-        this.conexaoRede = conexao;
-
 
     private ConexaoCliente conexao;
 
-    public TelaCliente(ConexaoCliente conexao) {
+    public TelaCliente(ConexaoCliente conexao, String nomeUsuario) {
         this.conexao = conexao;
       
         setTitle("Base de Monitoramento - Terminal de Campo");
@@ -61,6 +76,12 @@ public class TelaCliente extends JFrame {
 
         //Inicia a Thread de recebimento de mensagens
         iniciarRecepcao();
+
+        // Envia o nome do usuário assim que a tela abre, para o Servidor do Mei
+        // registrar sem precisar perguntar no chat!
+        if (this.conexao != null && this.conexao.estaConectado()) {
+            this.conexao.enviarMensagem(nomeUsuario);
+        } 
 
     }
 
@@ -224,6 +245,9 @@ public class TelaCliente extends JFrame {
 
     //Thread que fica recebendo mensagens do servidor
     private void iniciarRecepcao () {
+        
+        
+
         new Thread(() -> {
             try {
                 String mensagem;
@@ -236,13 +260,15 @@ public class TelaCliente extends JFrame {
                     }
 
                     else {
-                        SwingUtilities.invokeLater(() ->
-                            areaChat.append(msg + "\n")
-                        );
-                    }
+                        SwingUtilities.invokeLater(() -> {
+                            areaChat.append(msg + "\n");
+                            areaChat.setCaretPosition(areaChat.getDocument().getLength());
+                        
+                    });
                 }
             }
-
+            
+        }
             catch (IOException e) {
                 SwingUtilities.invokeLater(() ->
                     areaChat.append("[Sistema] Conexão encerrada.\n")
@@ -281,7 +307,7 @@ public class TelaCliente extends JFrame {
 
                 fos.close();
                 SwingUtilities.invokeLater(() ->
-                    areaChat.append ("[Servidor] Arquivo salvo em: recebidos/" + nomeArquivo + "\n")
+                    areaChat.append ("[Sistema] Arquivo salvo em: recebidos/" + nomeArquivo + "\n")
                 );
 
         } 
@@ -304,10 +330,15 @@ public class TelaCliente extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 String msg = campoMensagem.getText().trim();
                 if (!msg.isEmpty()) {
+                    if(msg.equals("/sair")) {
+                        conexao.enviarMensagem("/sair");
+                        conexao.desconectar();
+                        dispose();
+                        return;
+                    }
                     conexao.enviarMensagem(msg);
                     campoMensagem.setText("");
 
-                    // AQUI O MEI COLOCA O CÓDIGO DE ENVIO DO SOCKET (out.println(msg))
                 }
             }
         };
@@ -336,7 +367,6 @@ public class TelaCliente extends JFrame {
                     }
                 }).start();
 
-                // AQUI O MEI COLOCA O CÓDIGO DE ENVIO DE ARQUIVO (File Transfer / GZIP)
             }
         });
     }
@@ -347,10 +377,5 @@ public class TelaCliente extends JFrame {
         progressoFogo.setValue((int) (Math.random() * 100));
         progressoAgua.setValue((int) (Math.random() * 100));
     }
-
-    //public static void main(String[] args) {
-        // Aplica o tema Light do FlatLaf para ficar moderno igual à imagem
-        FlatLightLaf.setup();
-        SwingUtilities.invokeLater(() -> new TelaCliente(null).setVisible(true));
-    }
+    
 }

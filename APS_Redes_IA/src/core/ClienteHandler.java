@@ -5,13 +5,30 @@ import java.net.*;
 import java.time.*;
 import java.time.format.*;
 import java.util.*;
-import Persistencia.UsuarioDAOSql;
 
 public class ClienteHandler implements Runnable {
 
     private Socket socket;
     private String nomeCliente;
     private PrintWriter saida;
+    private static LogServidor logger;
+
+     //Construtor: recebe o socket do cliente que se conectou
+    public ClienteHandler (Socket socket) {
+        this.socket = socket;
+    }
+
+    public static void setLogger (LogServidor log) {
+        logger = log;
+    }
+
+    private void log (String mensagem){
+        if (logger != null) {
+            logger.log (mensagem);
+        } else {
+            System.out.println (mensagem);
+        }
+    }
 
     //Lista compartilhada de todos os clientes conectados
     private static List <ClienteHandler> clientesConectados = new ArrayList<>();
@@ -24,13 +41,6 @@ public class ClienteHandler implements Runnable {
         return "[" + LocalDateTime.now().format(FORMATO) + "]";
 
     }
-    
-
-    //Construtor: recebe o socket do cliente que se conectou
-    public ClienteHandler (Socket socket) {
-        this.socket = socket;
-
-    }
 
     @Override
     public void run () {
@@ -38,71 +48,53 @@ public class ClienteHandler implements Runnable {
             BufferedReader entrada = new BufferedReader (new InputStreamReader(socket.getInputStream()));
             saida = new PrintWriter (socket.getOutputStream(), true);
 
-            //Pede o nome do cliente para verificar se já existem alguém com esse nome
-            saida.println("╔══════════════════════════════╗");
-            saida.println("║     Bem-Vindo ao Chat!       ║");
-            saida.println("╚══════════════════════════════╝");
-            
-            UsuarioDAOSql dao = new UsuarioDAOSql();
-
-            saida.println ("Digite seu usuário: ");
+            // ==================================================================
+            // Integração com a Interface Gráfica
+            // ==================================================================
             String usuario = entrada.readLine();
 
-            saida.println ("Digite sua senha: ");
-            String senha = entrada.readLine();
-
-            //Tenta o login até 3 vezes
-            int tentativas = 1;
-            while (!dao.autenticar (usuario, senha)) {
-
-                if (tentativas >= 3) {
-                   saida.println ("╔══════════════════════════════════════════╗");
-                   saida.println ("║  Número de tentativas excedido!          ║");
-                   saida.println ("║  Você foi desconectado por segurança.    ║");
-                   saida.println ("╚══════════════════════════════════════════╝");
-                   socket.close();
-                   return;
-
-                }
-
-                saida.println ("[!] Usuário ou senha incorretos! Tentativa " + tentativas + " de 3.");
-                saida.println ("Digite seu usuário: ");
-                usuario = entrada.readLine();
-                saida.println ("Digite sua senha: ");
-                senha = entrada.readLine();
-                tentativas++;
-
-            }
-
-            //Login aprovado!
-            nomeCliente = usuario;
-            saida.println ("╔══════════════════════════════════════════╗");
-            saida.println ("║  Login realizado com sucesso!            ║");
-            saida.println ("║  Bem vindo, " + nomeCliente + "!" + " ".repeat(Math.max(0, 28 - nomeCliente.length())) + "║");
-            saida.println ("╚══════════════════════════════════════════╝");
-
-            //===== CHAT =====
-            //Verifica se já está conectado com esse usuário
-            while (nomeJaExiste(nomeCliente)) {
-                saida.println ("[!] Este usuário já está conectado em outra sessão!");
+            if (usuario == null || usuario.trim().isEmpty()) {
                 socket.close();
-                return; 
+                return;
             }
 
-            //Adiciona esse cliente na lista de conectados
+            nomeCliente = usuario;
+
+
+            if (nomeJaExiste(nomeCliente)) {
+                saida.println("[Sistema]: Erro - Este usuário já está conectado em outra sessão!");
+                socket.close();
+                return;
+            }
+          
+            if (logger != null) logger.clienteLogado (socket.getInetAddress().toString(), nomeCliente);
+
+
+            // Adiciona esse cliente na lista de conectados
             clientesConectados.add(this);
-            System.out.println (agora() + " " + nomeCliente + " entrou no chat!");
-            enviarParaTodos(agora() + "[Servidor] " + nomeCliente + " entrou no chat!");
+
+            // Integração: Usa o log do Mei em vez do System.out.println
+            log(agora() + " " + " conectou-se via Terminal de Campo");
+          
+            // Mensagem de boas vindas limpa (A sua versão do Front-end)
+            saida.println("-------------------------------------");
+            saida.println("[Central]: Bem vindo à rede de monitoramento, " + nomeCliente + "!");
+            saida.println("[Central]: Digite /lista para ver os comandos ou /arquivo para laudos.");
+            saida.println("--------------------------------------");
+          
+            // Avisa os outros
+            enviarParaTodos(agora() + " [Sistema]: " + nomeCliente + " entrou no chat operacional.");
+
 
             //Mostra os comandos disponíveis para o cliente utilizar
-            saida.println ("──────────────────────────────────────────");
-            saida.println ("Comandos Disponíveis: ");
-            saida.println ("/lista                        -> Mostra a lista de clientes conectados");
+            
+            saida.println ("\nComandos Disponíveis: ");
+            saida.println ("\n/lista                        -> Mostra a lista de clientes conectados");
             saida.println ("/p <nome> <mensagem>          -> mensagem privada para um cliente específico");
             saida.println ("<mensagem>                    -> envia para todos os clientes conectados");
             saida.println ("/arquivo <caminho>            -> envia um arquivo para todos");
             saida.println ("/sair                         -> Desconectar do chat");
-            saida.println ("──────────────────────────────────────────");
+        
 
             //Loop principal, lê mensagen enquanto cliente estiver conectados
             String mensagem;
@@ -132,7 +124,7 @@ public class ClienteHandler implements Runnable {
                 }
 
                 else {
-                    System.out.println (agora() + " " + nomeCliente + ": " + mensagem);
+                    log (agora() + " " + nomeCliente + ": " + mensagem);
                     enviarParaTodos (agora() + " [" + nomeCliente + "] " + mensagem);
 
                 }
@@ -143,7 +135,7 @@ public class ClienteHandler implements Runnable {
 
             if (nomeCliente != null) {
 
-                System.out.println (agora() + " " + nomeCliente + " perdeu a conexão.");
+                log (agora() + " " + nomeCliente + " perdeu a conexão.");
                 
             }
 
@@ -238,7 +230,7 @@ public class ClienteHandler implements Runnable {
             String nomeArquivo = partes[1];
             long tamanho = Long.parseLong(partes[2]);
 
-            System.out.println (agora() + "[Servidor] Recebendo arquivo de: " + nomeCliente + ": " + nomeArquivo + " (" + tamanho + " bytes)");
+            log (agora() + "[Servidor] Recebendo arquivo de: " + nomeCliente + ": " + nomeArquivo + " (" + tamanho + " bytes)");
 
             DataInputStream entradaBytes = new DataInputStream (socket.getInputStream());
 
@@ -246,7 +238,7 @@ public class ClienteHandler implements Runnable {
             byte[] dados = new byte [(int) tamanho];
             entradaBytes.readFully(dados);
 
-            System.out.println(agora() + "[Servidor] Arquivo recebido! Repassando para os outros clientes...");
+            log(agora() + "[Servidor] Arquivo recebido! Repassando para os outros clientes...");
 
             //Repassa para todos os outros clientes
             repassarArquivoParaTodos (nomeArquivo, dados);
@@ -254,7 +246,7 @@ public class ClienteHandler implements Runnable {
         }
 
         catch (IOException e) {
-            System.out.println ("[!] Erro ao receber arquivo: " + e.getMessage());
+            log ("[!] Erro ao receber arquivo: " + e.getMessage());
 
         }
     }
@@ -277,7 +269,7 @@ public class ClienteHandler implements Runnable {
                 }
 
                 catch (IOException e) {
-                    System.out.println ("[!] Erro ao repassar arquivo: " + e.getMessage());
+                    log ("[!] Erro ao repassar arquivo: " + e.getMessage());
                 }
             }
         }

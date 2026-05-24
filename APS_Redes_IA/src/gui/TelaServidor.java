@@ -11,7 +11,7 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-public class TelaServidor extends JFrame {
+public class TelaServidor extends JFrame implements core.LogServidor{
 
     // Nova paleta de cores (Estética sugerida pela Julia)
     private final Color corFundoLateral = new Color(26, 26, 38); // Fundo do painel direito
@@ -21,11 +21,24 @@ public class TelaServidor extends JFrame {
     private final Color corStatusCiano = new Color(0, 229, 255); //Ciano brilhante para IP/Status
     private final Color corBotaoRoxo = new Color(165, 85, 160); // Roxo/Magenta do botão
     private final Color corCabecalhoTabela = new Color(199, 120, 214); // Roxo claro das colunas
-    private core.Servidor servidorCore;
 
     private JTextPane logEventos;
     private DefaultTableModel modelTabela; // Agora usando uma tabela em vez de Lista
     private JTable tabelaTerminal;
+
+    @Override 
+    public void log (String mensagem) {
+        SwingUtilities.invokeLater(() -> adicionarLog(mensagem));
+    }
+
+    @Override
+    public void clienteLogado (String ip, String nome) {
+        SwingUtilities.invokeLater(() -> {
+
+            adicionarLog(obterAgora() + " [LOGIN] " + nome + " conectado de " + ip);
+            adicionarTerminal (ip, nome);
+        });
+    }
 
     public TelaServidor() {
         configurarJanela();
@@ -36,7 +49,16 @@ public class TelaServidor extends JFrame {
         add(criarPainelLateralDireita(), BorderLayout.EAST);
 
         // Log Inicial de Sistema
-        adicionarLog("[12:22:03] [SISTEMA] Servidor Central iniciado. Aguardando conexões na porta ...");
+        adicionarLog(obterAgora() + " [SISTEMA] Servidor aguardando início...");
+    }
+
+    private String obterIpLocal() {
+        try {
+            java.net.InetAddress ip = java.net.InetAddress.getLocalHost();
+            return ip.getHostAddress();
+        } catch (Exception e) {
+            return "IP não encontrado";
+        }
     }
 
     private void configurarJanela() {
@@ -57,7 +79,7 @@ public class TelaServidor extends JFrame {
         titulo.setFont(new Font("Segoe UI", Font.BOLD, 22));
         titulo.setForeground(Color.WHITE);
 
-        JLabel info = new JLabel("Status: Servidor Online | IP: 192.168.1.100 ");
+        JLabel info = new JLabel("Status: Servidor Online | IP: " + obterIpLocal() + " ");
         info.setForeground(corStatusCiano);
         info.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
@@ -103,14 +125,8 @@ public class TelaServidor extends JFrame {
         lblTerminais.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
         // MUDANÇA: Usando JTable em vez JList ---
-        String[] colunas = {"Terminal", "IP", "Localização"};
-        Object[][] dadosIniciais = {
-            {"TERM-01", "192.168.1.102", "Armazém SUL"},
-            {"TERM-02", "192.168.1.103", "Fábrica OESTE"},
-            {"TERM-03", "192.168.1.104", "Escritório CENTRAL"}
-        };
-
-        modelTabela = new DefaultTableModel(dadosIniciais, colunas) {
+        String[] colunas = {"Terminal", "IP", "Usuário"};
+        modelTabela = new DefaultTableModel(colunas, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false; // Impede que o usuário edite o texto clicando
@@ -160,31 +176,61 @@ public class TelaServidor extends JFrame {
         return lateral;
     }
 
-    public void iniciarServidor() {
-        new Thread (() -> {
-            
-            try {
-                java.net.ServerSocket serverSocket = new java.net.ServerSocket(65173);
-                adicionarLog (obterAgora() + " [Sistema] Servidor iniciado na porta 65173!");
+    public void iniciarServidor () {
 
-                while (true) {
+        //Registra a tela como logger do ClienteHandler
+        core.ClienteHandler.setLogger (this);
+
+        new Thread(() -> {
+            try {
+
+                java.net.ServerSocket serverSocket = new java.net.ServerSocket (65173);
+                adicionarLog (obterAgora() + " [SISTEMA] Servidor iniciando na porta 65173!");
+                
+                while (true) { 
+                    
                     java.net.Socket socket = serverSocket.accept();
                     String ip = socket.getInetAddress().toString();
-                    adicionarLog (obterAgora() + "[Conexão] Novo Cliente: " + ip);
 
-                    core.ClienteHandler handler = new core.ClienteHandler (socket);
-                    new Thread (handler).start();
+                    //O logger cuida de tudo agora, não precisa passar 'tela' no construtor
+                    core.ClienteHandler handler = new core.ClienteHandler(socket);
+                    new Thread (() -> {
+                        handler.run();
+                        removerTerminal (ip);
+
+                    }).start();
                     
                 }
+                
+            } catch (IOException e) {
 
-            } 
-            
-            catch (IOException e) {
-
-                adicionarLog("[ERRO] " + e.getMessage());
-        
+                adicionarLog ("[ERRO] " + e.getMessage());
             }
         }).start();
+    }
+
+    public void adicionarTerminal (String ip, String nome) {
+        SwingUtilities.invokeLater(() -> {
+            int linha = modelTabela.getRowCount () + 1;
+            modelTabela.addRow (new Object [] {
+                "TERM-0" + linha,
+                ip,
+                nome // <- nome real!
+
+            });
+        });
+    }
+
+    public void removerTerminal (String ip) {
+        SwingUtilities.invokeLater(() -> {
+            for (int i = 0; i < modelTabela.getRowCount(); i++) {
+                if (modelTabela.getValueAt (i, 1).equals (ip)) {
+                    modelTabela.removeRow(i);
+                    adicionarLog (obterAgora() + " [SAÍDA] Terminal " + ip + " desconectado.");
+                    break;
+                }
+            }
+        });
     }
 
     private String obterAgora () {
@@ -208,6 +254,10 @@ public class TelaServidor extends JFrame {
 
     public static void main(String[] args) {
         FlatDarkLaf.setup();
-        SwingUtilities.invokeLater(() -> new TelaServidor().setVisible(true));
+        SwingUtilities.invokeLater (() -> {
+            TelaServidor tela = new TelaServidor();
+            tela.setVisible(true);
+            tela.iniciarServidor();
+        });
     }
 }
