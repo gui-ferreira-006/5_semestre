@@ -7,7 +7,7 @@ public class GerenciadorDeLogin {
      //Caminho do arquivo de usuários
     private static final String ARQUIVO = "core/usuarios.txt";
     
-    //Vertifica se o usuário e senha estão corretos
+    //Verifica se o usuário e senha estão corretos
     public static boolean verificarLogin (String usuario, String senha) {
         try {
 
