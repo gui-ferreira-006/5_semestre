@@ -5,6 +5,8 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.io.*;
+import core.ConexaoCliente;
 
 public class TelaCliente extends JFrame {
 
@@ -27,9 +29,10 @@ public class TelaCliente extends JFrame {
     private JTextField campoMensagem;
     private JButton btnEnviarAlerta;
     private JButton btnSubmeterLaudo;
-    private conexaoCliente conexao;
+    private ConexaoCliente conexao;
 
-    public TelaCliente() {
+    public TelaCliente(ConexaoCliente conexao) {
+        this.conexao = conexao;
         setTitle("Base de Monitoramento - Terminal de Campo");
         setSize(950, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -42,6 +45,10 @@ public class TelaCliente extends JFrame {
         // Criando a divisão em dois painéis (Esquerdo e Direito)
         add(criarPainelEsquerdo(), BorderLayout.WEST);
         add(criarPainelDireito(), BorderLayout.CENTER);
+
+        //Inicia a Thread de recebimento de mensagens
+        iniciarRecepcao();
+
     }
 
     // ==================================================================
@@ -233,48 +240,48 @@ public class TelaCliente extends JFrame {
 
     //Recebe arquivo do Servidor
     private void receberArquivo (String cabecalho) {
-        String [] partes = cabecalho.split (":");
-        String nomeArquivo = partes[1];
-        long tamanho = Long.parseLong (partes[2]);
-
-        SwingUtilities.invokeLater(() ->
-            areaChat.append("[Sistema] Recebendo arquivo: " + nomeArquivo + "\n")
-        );
-
-        File pasta = new File ("recebidos");
-        if (!pasta.exists()) pasta.mkdirs();
-
-        File arquivo = new File ("recebidos/" + nomeArquivo);
-        FileOutputStream fos = new FileOutputStream (arquivo);
-        byte [] buffer = new byte [4096];
-        long totalLido = 0;
-        int lido;
-
-        while (totalLido < tamanho &&
-            (lido = conexao.getEntradaBytes().read(buffer, 0,
-            (int) Math.min(buffer.length, tamanho - totalLido))) != -1) {
-            fos.write(buffer, 0, lido);
-            totalLido += lido;
-            }
+        try {
             
-            fos.close();
-            SwingUtilities.invokeLater(() ->
-                areaChat.append("[Sistema] Arquivo salvo em: recebidos/" + nomeArquivo + "\n")
-            );
-        }
+            String[] partes = cabecalho.split(":");
+            String nomeArquivo = partes[1];
+            long tamanho = Long.parseLong(partes[2]);
 
-        catch (IOException e ) {
-            SwingUtilities.invokerLater(()->
+            SwingUtilities.invokeLater(() ->
+                areaChat.append("[Sistema] Recebendo arquivo: " + nomeArquivo + "\n")
+            );
+            
+            File pasta = new File ("recebidos");
+            if (!pasta.exists()) pasta.mkdirs();
+
+            File arquivo = new File ("recebidos/" + nomeArquivo);
+            FileOutputStream fos = new FileOutputStream(arquivo);
+            byte[] buffer = new byte [4096];
+            long totalLido = 0;
+            int lido;
+
+            while (totalLido < tamanho &&
+                (lido = conexao.getEntradaBytes().read(buffer, 0,
+                (int) Math.min (buffer.length, tamanho - totalLido))) != -1) {
+                    fos.write (buffer, 0, lido);
+                    totalLido += lido;        
+                }
+
+                fos.close();
+                SwingUtilities.invokeLater(() ->
+                    areaChat.append ("[Servidor] Arquivo salvo em: recebidos/" + nomeArquivo + "\n")
+                );
+
+        } 
+        
+        catch (IOException e) {
+            
+            SwingUtilities.invokeLater(() ->
                 areaChat.append("[Sistema] Erro ao receber arquivo.\n")
             );
         }
-
-        catch (IOException e) {
-            SwingUtilities.invokerLater(() ->
-                areaChat.append ("[Sistema] Erro ao receber arquivo.\n")
-            );
-        }
     }
+        
+    
 
     private void configurarEventos() {
 
@@ -310,7 +317,7 @@ public class TelaCliente extends JFrame {
                     } 
 
                     catch (IOException ex) {
-                        Swingutilities.invokeLater(() -> 
+                        SwingUtilities.invokeLater(() -> 
                             areaChat.append("@ [Arquivo]: Erro ao enviar arquivo. \n")
                         );
                     }
@@ -328,9 +335,9 @@ public class TelaCliente extends JFrame {
         progressoAgua.setValue((int) (Math.random() * 100));
     }
 
-    public static void main(String[] args) {
+    //public static void main(String[] args) {
         // Aplica o tema Light do FlatLaf para ficar moderno igual à imagem
-        FlatLightLaf.setup();
-        SwingUtilities.invokeLater(() -> new TelaCliente().setVisible(true));
-    }
+        //FlatLightLaf.setup();
+        //SwingUtilities.invokeLater(() -> new TelaCliente().setVisible(true));
+    //}
 }
