@@ -11,7 +11,7 @@ import Modelo.Usuario;
 public class UsuarioDAOSql implements UsuarioDAO {
     private static final String URL = "jdbc:mysql://localhost:3306/chat_ambiental";
     private static final String User = "root";
-    private static final String Pass = "MySQL2025@";
+    private static final String Pass = "Gui.300106@!";
 
     public UsuarioDAOSql(){
         inicializarTabela();
