@@ -32,7 +32,7 @@ public class ConexaoCliente {
         if (saida != null) saida.println(mensagem);
     }
 
-    //L~E uma linha do servidor
+    //Lê uma linha do servidor
     public String receberMensagem() throws IOException {
         return entrada.readLine();
     }

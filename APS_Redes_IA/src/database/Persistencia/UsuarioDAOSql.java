@@ -1,11 +1,17 @@
 package Persistencia;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 import Modelo.Usuario;
-import java.sql.*;
 
 public class UsuarioDAOSql implements UsuarioDAO {
     private static final String URL = "jdbc:mysql://localhost:3306/chat_ambiental";
     private static final String User = "root";
-    private static final String Pass = "32643553";
+    private static final String Pass = "Gui.300106@!";
 
     public UsuarioDAOSql(){
         inicializarTabela();
@@ -20,7 +26,7 @@ public class UsuarioDAOSql implements UsuarioDAO {
         try (Connection conn = DriverManager.getConnection(URL, User, Pass);
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
-            System.out.println("Tabela 'usuarios' verificada cpm sucesso no MySQL!");
+            System.out.println("Tabela 'usuarios' verificada com sucesso no MySQL!");
         } catch (SQLException e) {
             System.err.println("Erro ao inicializar tabela: " + e.getMessage());
         }
@@ -38,7 +44,7 @@ public class UsuarioDAOSql implements UsuarioDAO {
             pstmt.executeUpdate();
             return true;
         } catch (SQLException e) {
-            System.err.println("Error ao cadastras usuário: " + e.getMessage());
+            System.err.println("Error ao cadastrar usuário: " + e.getMessage());
             return false;
         }
     }

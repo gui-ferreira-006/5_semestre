@@ -1,17 +1,12 @@
 package gui;
 
-import Persistencia.UsuarioDAOSql;
 import com.formdev.flatlaf.FlatLightLaf;
-
-import core.ConexaoCliente;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.io.IOException;
-
-
+import core.ConexaoCliente;
+import Persistencia.UsuarioDAOSql;
 public class TelaLogin extends JFrame {
     
     // Componentes que a Danielle e o Mei vão usar depois
@@ -129,190 +124,63 @@ public class TelaLogin extends JFrame {
         lblStatus.setForeground(Color.GRAY);
 
         // Evento do Botão (Simulando a ação para a Danielle e Mei assumirem depois)
-        btnConectar.addActionListener( new java.awt.event.ActionListener () {
-            public void actionPerformed(java.awt.event.ActionEvent e) {
-
-            // Este é um feedback visual para o usuário, indicando que a autenticação está em andamento
-            lblStatus.setForeground(new Color(200, 100, 0)); // Laranja para ação em andamento
-            lblStatus.setText("Status: Autenticando com " + campoIpServidor.getText() + "...");
-            
-            String ipDoServidor = campoIpServidor.getText();
-            String credencialDigitada = campoCredencial.getText();
+        btnConectar.addActionListener((ActionEvent e) -> {
+            String ipDigitado = campoIpServidor.getText().trim();
+            String usuarioDigitado = campoCredencial.getText().trim();
             String senhaDigitada = new String(campoSenha.getPassword());
 
-            if(credencialDigitada.isEmpty() || senhaDigitada.isEmpty()) {
-                JOptionPane.showMessageDialog(TelaLogin.this, 
-                    "Por favor, insira as credenciais da estação.",
-                    "Aviso!", JOptionPane.WARNING_MESSAGE);
-                lblStatus.setText("Status: Aguardando credenciais...");
-                lblStatus.setForeground(Color.GRAY);
+            // 1. Validação simples se não está vazio
+            if(usuarioDigitado.isEmpty() || senhaDigitada.isEmpty() || ipDigitado.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Preencha todos os campos!", "Aviso", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            try {
-                
-                lblStatus.setForeground(new Color (200, 100, 0)); 
-                lblStatus.setText("Status: Autenticando com " + ipDoServidor + "...");
-                UsuarioDAOSql dao = new UsuarioDAOSql();
-                boolean loginValido = dao.autenticar(credencialDigitada, senhaDigitada);
-                
-                if (loginValido) {
-                    lblStatus.setForeground(new Color(16,185,129));
-                    lblStatus.setText("Status: Conexão Estabelecida!");
-                    JOptionPane.showMessageDialog(TelaLogin.this, "Acesso permitido ao sistema de monitoramento.", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+
+            lblStatus.setForeground(Color.ORANGE);
+            lblStatus.setText("Status: Autenticando no Banco de Dados...");
+            btnConectar.setEnabled(false); // Trava o botão para não dar duplos cliques
+
+            // 2. Thread em segundo plano para não travar a interface
+            new Thread(() -> {
+                // --- BACK-END DA DANIELLE (BD MYSQL) ---
+                UsuarioDAOSql banco = new UsuarioDAOSql();
+                boolean senhaCorreta = banco.autenticar(usuarioDigitado, senhaDigitada);
+
+                if (senhaCorreta) {
+                    SwingUtilities.invokeLater(() -> lblStatus.setText("Status: Conectando na Rede " + ipDigitado + "..."));
+                    // --- BACK-END DO MEI (REDES/SOCKETS) ---
+                    ConexaoCliente conexao = new ConexaoCliente();
+                    // Conecta na porta 5000 (Mesma configurada no Servidor)
+                    boolean conectouNaRede = conexao.conectar(ipDigitado, 65173);
+
+                    SwingUtilities.invokeLater(() -> {
+                        btnConectar.setEnabled(true);
+
+                        if (conectouNaRede) {
+                            lblStatus.setForeground(corEsquerda);
+                            lblStatus.setText("Status : Conexão Estabelecida!");
+
+                            // TRANSIÇÃO DE TELA (O SUCESSO DO SISTEMA)
+                            dispose();
+                            new TelaCliente(conexao, usuarioDigitado).setVisible(true); // Abre a tela do cliente
+
+                        } else {
+                            lblStatus.setForeground(Color.RED);
+                            lblStatus.setText("Status: Servidor Socket Offline.");
+                            JOptionPane.showMessageDialog(TelaLogin.this, "Senha correta, mas o servidor socket não respondeu.\nVerifique se a TelaServidor está aberta.", "Erro na rede", JOptionPane.ERROR_MESSAGE);
+                        }
+                    });
                 } else {
-                    lblStatus.setForeground(Color.RED);
-                    lblStatus.setText("Status: Falha na autenticação.");
-                    JOptionPane.showMessageDialog(TelaLogin.this, "Credenciais inválidas.", "Erro", JOptionPane.ERROR_MESSAGE);
-
-                }
-            } catch (Exception ex) {
-                // Se o banco falhar por qualquer motivo, o programa cai aqui e não trava!
-               lblStatus.setForeground(Color.RED);
-               lblStatus.setText("Status: Erro de conexão.");
-               JOptionPane.showMessageDialog(TelaLogin.this, "Erro ao conectar ao banco: " + ex.getMessage(), "Erro Crítico", JOptionPane.ERROR_MESSAGE);
-            }
-
-            }
-        });
-
-
-            //Apatir daqui
-            String ip = campoIpServidor.getText().trim();
-            String usuario = campoCredencial.getText().trim();
-            String senha = new String (campoSenha.getPassword()).trim();
-
-            if (ip.isEmpty() || usuario.isEmpty() || senha.isEmpty()) {
-                JOptionPane.showMessageDialog (this,
-                    "Por favor, preencha todos os campos!",
-                    "Aviso", JOptionPane.WARNING_MESSAGE);
-                    return;
-            }
-
-            lblStatus.setForeground (new Color (200, 100, 0));
-            lblStatus.setText ("Status: Conectando em " + ip + "...");
-            
-            //Tenta conectar em uma Thread separada para não travvar a tela
-            new Thread (() -> {
-                ConexaoCliente conexao = new ConexaoCliente();
-
-                if (!conexao.conectar (ip, 65173)) {
-                    SwingUtilities.invokeLater (() -> {
-                        lblStatus.setForeground (Color.RED);
-                        lblStatus.setText ("Status: Servidor não encontrado!");;
-                        JOptionPane.showMessageDialog (this,
-                            "Não foi ppossível conectar ao servidor.\nVerifique o IP e tente novamente.",
-                            "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
-                        
-                    });
-
-                    return;
-
-                }
-
-                try{
-
-                    //Lê a mensagem de boas vindas do servidor
-                    conexao.receberMensagem(); // ╔══...
-                    conexao.receberMensagem(); // ║ Bem-Vindo
-                    conexao.receberMensagem(); // ╚══...
-
-
-                    conexao.receberMensagem();
-                    conexao.enviarMensagem(usuario);
-                    conexao.receberMensagem();
-                    conexao.enviarMensagem(senha);
-
-                    //Lê a resposta do login
-                    String resposta = conexao.receberMensagem();
-
-                    if (resposta != null && resposta.contains ("sucesso")) {
-
-                        //Login aprovado!
-                        SwingUtilities.invokeLater (() -> {
-                            lblStatus.setForeground (new Color (16, 185, 129));
-                            lblStatus.setText ("Status: Conexão Estabelecida!");
-                        });
-                    }
-
-                    else {
-
-                        SwingUtilities.invokeLater(() -> {
-                            lblStatus.setForeground (Color.RED);
-                            lblStatus.setText ("Status: Usuário ou senha incorretos!");
-                            JOptionPane.showMessageDialog (this,
-                                "Usuário ou senha incorretos!", "erro de Autenticação", JOptionPane.ERROR_MESSAGE);
-                        
-                        });
-
-                        conexao.desconectar();
-                    }
-
-                }
-
-                catch (IOException ex) {
-                    SwingUtilities.invokeLater (() -> {
-                        lblStatus.setForeground (Color.RED);
-                        lblStatus.setText ("Status: Erro na comunicação!");
+                    // Se a senha estiver errada no Banco
+                    SwingUtilities.invokeLater(() -> {
+                        btnConectar.setEnabled(true);
+                        lblStatus.setForeground(Color.RED);
+                        lblStatus.setText("Status: Acesso Negado");
+                        JOptionPane.showMessageDialog(TelaLogin.this, "Usuario ou senha inválidos!", "Erro de Login", JOptionPane.ERROR_MESSAGE);
                     });
                 }
-            });
+            }).start();
 
-            
-
-            /* ================================================================================
-            Prestem atenção: aqui é aonde a lógica do Back-end entra em cena
-            O código abaixo (Timer) é apenas para simular o tempo de loading.
-            Quando forem integrar o Back-end, APAGUEM a simulação e descomentem
-            a estrutura abaixo, adaptando para as classes de vocês.
-            ===================================================================================
-            
-            // --- PASSO 1: Danielle (BANCO DE DADOS) ---
-            // Dani, você precisa pegar o que o usuário digitou nestes dois campos:
-            String credencialDigitada = campoCredencial.getText();
-            String senhaDigitada = new String(campoSenha.getPassword());
-            
-            // Depois, você chama a sua classe DAO para validar lá no seu banco:
-            AutenticacaoDAO dao = new AutenticacaoDAO();
-            boolean loginValido = dao.validarCredenciais(credencialDigitada, senhaDigitada);
-            
-            if (loginValido) {
-                // Se o banco aprovou, a gente avisa o usuário e passa a bola pro Mei!
-                lblStatus.setForeground(new Color(16, 185, 129)); // Verde
-                lblStatus.setText("Status: Conexão Estabelecida!");
-                
-                // --- PASSO 2: MEI (REDES / SOCKETS) ---
-                // Mei, como o login deu certo, agora você precisa conectar o Socket 
-                // do Cliente lá no Servidor Central. Pega o IP digitado assim:
-                String ipDoServidor = campoIpServidor.getText();
-                
-                // Aqui você chama a sua classe que inicia a conexão TCP/Socket:
-                // ClienteSocket.iniciarConexao(ipDoServidor, 5000); // Exemplo de porta
-                
-                // --- PASSO 3: TRANSIÇÃO DE TELAS (FRONT-END) ---
-                // Depois que o banco validou e o socket conectou, nós fechamos
-                // a tela de login e abrimos a tela principal do Cliente.
-                dispose(); // Fecha esta janela de login
-                new TelaCliente().setVisible(true); // Abre a base de monitoramento
-                
-            } else {
-                // Se a Danielle retornar 'false' do banco (senha ou usuário incorretos):
-                JOptionPane.showMessageDialog(TelaLogin.this, 
-                    "Credenciais inválidas ou Estação não encontrada no Banco de Dados.", 
-                    "Erro de Autenticação", JOptionPane.ERROR_MESSAGE);
-                lblStatus.setText("Status: Falha na conexão.");
-                lblStatus.setForeground(Color.RED);
-            }
-            */
-
-            // Exemplo visual de resposta
-            // (Apagar este bloco inteiro quando forem integrar o código real do banco e socket)
-           
-    
-
-
-
-
-
+        }); // Fim da integração real
         // Adiciona os componentes ao painel direito
         painel.add(tituloForm);
         painel.add(Box.createVerticalStrut(30));

@@ -1,10 +1,39 @@
 package gui;
 
-import com.formdev.flatlaf.FlatLightLaf;
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.border.EmptyBorder;
+
+import core.ConexaoCliente;
+
 
 public class TelaCliente extends JFrame {
 
@@ -28,7 +57,11 @@ public class TelaCliente extends JFrame {
     private JButton btnEnviarAlerta;
     private JButton btnSubmeterLaudo;
 
-    public TelaCliente() {
+    private ConexaoCliente conexao;
+
+    public TelaCliente(ConexaoCliente conexao, String nomeUsuario) {
+        this.conexao = conexao;
+      
         setTitle("Base de Monitoramento - Terminal de Campo");
         setSize(950, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -41,6 +74,16 @@ public class TelaCliente extends JFrame {
         // Criando a divisão em dois painéis (Esquerdo e Direito)
         add(criarPainelEsquerdo(), BorderLayout.WEST);
         add(criarPainelDireito(), BorderLayout.CENTER);
+
+        //Inicia a Thread de recebimento de mensagens
+        iniciarRecepcao();
+
+        // Envia o nome do usuário assim que a tela abre, para o Servidor do Mei
+        // registrar sem precisar perguntar no chat!
+        if (this.conexao != null && this.conexao.estaConectado()) {
+            this.conexao.enviarMensagem(nomeUsuario);
+        } 
+
     }
 
     // ==================================================================
@@ -201,17 +244,137 @@ public class TelaCliente extends JFrame {
         return painel;
     }
 
+    //Thread que fica recebendo mensagens do servidor
+    private void iniciarRecepcao () {
+        
+        
+
+        new Thread(() -> {
+            try {
+                String mensagem;
+                while ((mensagem = conexao.receberMensagem()) != null) {
+                    final String msg = mensagem;
+
+                    if (msg.startsWith("ARQUIVO:")) {
+                        receberArquivo(msg);
+                        
+                    }
+
+                    else {
+                        SwingUtilities.invokeLater(() -> {
+                            areaChat.append(msg + "\n");
+                            areaChat.setCaretPosition(areaChat.getDocument().getLength());
+                        
+                    });
+                }
+            }
+            
+        }
+            catch (IOException e) {
+                SwingUtilities.invokeLater(() ->
+                    areaChat.append("[Sistema] Conexão encerrada.\n")
+                );
+            }
+        }).start();
+    }
+
+    //Recebe arquivo do Servidor
+    private void receberArquivo (String cabecalho) {
+        try {
+            
+            String[] partes = cabecalho.split(":");
+            String nomeArquivo = partes[1];
+            long tamanho = Long.parseLong(partes[2]);
+
+            SwingUtilities.invokeLater(() ->
+                areaChat.append("[Sistema] Recebendo arquivo: " + nomeArquivo + "\n")
+            );
+            
+            File pasta = new File ("recebidos");
+            if (!pasta.exists()) pasta.mkdirs();
+
+            File arquivo = new File ("recebidos/" + nomeArquivo);
+            FileOutputStream fos = new FileOutputStream(arquivo);
+            byte[] buffer = new byte [4096];
+            long totalLido = 0;
+            int lido;
+
+            while (totalLido < tamanho &&
+                (lido = conexao.getEntradaBytes().read(buffer, 0,
+                (int) Math.min (buffer.length, tamanho - totalLido))) != -1) {
+                    fos.write (buffer, 0, lido);
+                    totalLido += lido;        
+                }
+
+                fos.close();
+
+                //Arquivo salvo - Agora mostrar botão para abrir
+                final File arquivoFinal = arquivo;
+                SwingUtilities.invokeLater(() -> {
+                    areaChat.append ("[Sistema] Arquivo salvo em: recebidos/" + nomeArquivo + "\n");
+                    areaChat.setCaretPosition (areaChat.getDocument().getLength());
+
+                    //érgunta se quer abrir o arquivo
+                    int resposta = JOptionPane.showConfirmDialog(
+                        this,
+                        "Arquivo recebido: " + nomeArquivo + "\nDeseja abrir agora?",
+                        "Arquivo recebido",
+                        JOptionPane.YES_NO_OPTION, 
+                        JOptionPane.INFORMATION_MESSAGE
+                    );
+
+                    if (resposta == JOptionPane.YES_OPTION) {
+                        abrirArquivo (arquivoFinal);
+                    }
+                });
+        } 
+        
+        catch (IOException e) {
+            
+            SwingUtilities.invokeLater(() ->
+                areaChat.append("[Sistema] Erro ao receber arquivo.\n")
+            );
+        }
+    }
+        
+    private void abrirArquivo (File arquivo) {
+        try {
+            
+            // Desktop.open() abre o arquivo com o programa padrão do sistema
+            // PDF → abre no Adobe/navegador
+            // DOCX → abre no Word
+            // XLSX → abre no Excel
+
+            if (java.awt.Desktop.isDesktopSupported()) {
+                java.awt.Desktop.getDesktop ().open(arquivo);
+                areaChat.append(" [Sistema]: Abrindo " + arquivo.getName() + "...\n");
+            }
+            }
+            
+            catch (IOException e) {
+
+                areaChat.append(" [Sistema]: Erro ao abrir arquivo: " + e.getMessage() + "\n");
+                areaChat.append(" Localização: " + arquivo.getAbsolutePath() + "\n");
+        }
+    }
+
     private void configurarEventos() {
+
         // Envio de Mensagem (Para o Mei conectar nos Sockets)
         Action acaoEnviar = new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String msg = campoMensagem.getText().trim();
                 if (!msg.isEmpty()) {
-                    areaChat.append("Você: " + msg + "\n");
+                    if(msg.equals("/sair")) {
+                        conexao.enviarMensagem("/sair");
+                        conexao.desconectar();
+                        dispose();
+                        return;
+                    }
+                    conexao.enviarMensagem(msg);
                     campoMensagem.setText("");
 
-                    // AQUI O MEI COLOCA O CÓDIGO DE ENVIO DO SOCKET (out.println(msg))
                 }
             }
         };
@@ -223,10 +386,23 @@ public class TelaCliente extends JFrame {
         btnSubmeterLaudo.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
             if(fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                String nome = fileChooser.getSelectedFile().getName();
-                areaChat.append("📎 [Arquivo]: Enviando laudo '" + nome + "' para a central...\n");
+                File arquivo = fileChooser.getSelectedFile();
+                areaChat.append("📎 [Arquivo]: Enviando laudo '" + arquivo.getName() + "' para a central...\n");
+                new Thread (() -> {
+                    try {
+                        conexao.enviarArquivo(arquivo);
+                        SwingUtilities.invokeLater(() ->
+                            areaChat.append("@ [Arquivo]: Arquivo enviado com sucesso!\n")
+                        );
+                    } 
 
-                // AQUI O MEI COLOCA O CÓDIGO DE ENVIO DE ARQUIVO (File Transfer / GZIP)
+                    catch (IOException ex) {
+                        SwingUtilities.invokeLater(() -> 
+                            areaChat.append("@ [Arquivo]: Erro ao enviar arquivo. \n")
+                        );
+                    }
+                }).start();
+
             }
         });
     }
@@ -237,10 +413,5 @@ public class TelaCliente extends JFrame {
         progressoFogo.setValue((int) (Math.random() * 100));
         progressoAgua.setValue((int) (Math.random() * 100));
     }
-
-    public static void main(String[] args) {
-        // Aplica o tema Light do FlatLaf para ficar moderno igual à imagem
-        FlatLightLaf.setup();
-        SwingUtilities.invokeLater(() -> new TelaCliente().setVisible(true));
-    }
+    
 }
