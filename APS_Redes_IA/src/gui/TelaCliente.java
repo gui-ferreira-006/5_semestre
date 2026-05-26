@@ -378,10 +378,40 @@ public class TelaCliente extends JFrame {
                 }
             }
         };
+        
+        //Adiciona a ação de enviar mensagem de texto ao aperta Enter
+        campoMensagem.addActionListener(acaoEnviar);
 
-        btnEnviarAlerta.addActionListener(acaoEnviar);
-        campoMensagem.addActionListener(acaoEnviar); // Envia ao apertar Enter
+        // ==========================================================
+        // NOVO CÓDIGO DO BOTÃO DE ALERTA (Separado da mensagem de texto)
+        // ==========================================================
 
+        btnEnviarAlerta.addActionListener (e -> {
+            String [] tiposAlerta = {
+                "Incêndio Florestal",
+                "Terremoto",
+                "Deslizamento",
+                "Tráfigo de Animais Silvestres"
+            };
+
+            String selecao = (String) JOptionPane.showInputDialog(
+                this, //Usa a prória tela como referência
+                "Selecione a natureza da emergência ambiental: ",
+                "Emitir Alerta Crítico",
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                tiposAlerta,
+                tiposAlerta[0]
+
+            );
+
+            if (selecao != null) {
+                //Formata o alerta e enviar direto pelo Socket usando a conexão já instanciada
+                String mensagemAlerta = "[ALERTA CRÍTICO M2M] O terminal reportou: " + selecao + "";
+                conexao.enviarMensagem(mensagemAlerta);
+            }
+        });
+        
         // Evento de Submeter Laudo
         btnSubmeterLaudo.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
