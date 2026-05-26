@@ -1,11 +1,17 @@
 package gui;
 
 import com.formdev.flatlaf.FlatDarkLaf;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.*;
+
 import java.awt.*;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import javax.swing.table.JTableHeader;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -172,6 +178,46 @@ public class TelaServidor extends JFrame implements core.LogServidor{
         lateral.add(lblTerminais, BorderLayout.NORTH);
         lateral.add(scrollTabela, BorderLayout.CENTER);
         lateral.add(btnRelatorio, BorderLayout.SOUTH);
+
+        // ====================================================================
+        // AÇÃO DO BOTÃO: GERAR RELATÓRIO
+        // ====================================================================
+
+        btnRelatorio.addActionListener (e -> {
+            //Pega o texto do seu JTextPane
+            String historicoLogs = logEventos.getText();
+
+            if (historicoLogs.trim().isEmpty()) {
+                JOptionPane.showMessageDialog(null,"O terminal está vazio. Não há logs para exportar.", "Aviso", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Salvar Relatório de Auditoria M2M");
+
+            String dataAtual = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            fileChooser.setSelectedFile(new File ("Relatório_EcoMonitor_" + dataAtual + ".txt"));
+
+            int escolhaUsuario = fileChooser.showSaveDialog(null);
+
+            if (escolhaUsuario == JFileChooser.APPROVE_OPTION) {
+                File arquivoSalvar = fileChooser.getSelectedFile();
+
+                try (FileWriter writer = new FileWriter(arquivoSalvar)) {
+                    writer.write("====================================================\\n\"");
+                    writer.write("    RELATÓRIO GERAL - CENTRAL DE OPERAÇÕES M2M\\n");
+                    writer.write("====================================================\\n");
+                    writer.write("Gerado em : " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")) + "\n\n");
+
+                    writer.write(historicoLogs);
+
+                    JOptionPane.showMessageDialog(null, "Relatório gerado com sucesso!\nSalvo em: " + arquivoSalvar.getAbsolutePath(), "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(null, "Erro ao salvar o relatório" + ex.getMessage(), "Erro Crítico", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
 
         return lateral;
     }
