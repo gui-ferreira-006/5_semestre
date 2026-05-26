@@ -307,10 +307,26 @@ public class TelaCliente extends JFrame {
                 }
 
                 fos.close();
-                SwingUtilities.invokeLater(() ->
-                    areaChat.append ("[Sistema] Arquivo salvo em: recebidos/" + nomeArquivo + "\n")
-                );
 
+                //Arquivo salvo - Agora mostrar botão para abrir
+                final File arquivoFinal = arquivo;
+                SwingUtilities.invokeLater(() -> {
+                    areaChat.append ("[Sistema] Arquivo salvo em: recebidos/" + nomeArquivo + "\n");
+                    areaChat.setCaretPosition (areaChat.getDocument().getLength());
+
+                    //érgunta se quer abrir o arquivo
+                    int resposta = JOptionPane.showConfirmDialog(
+                        this,
+                        "Arquivo recebido: " + nomeArquivo + "\nDeseja abrir agora?",
+                        "Arquivo recebido",
+                        JOptionPane.YES_NO_OPTION, 
+                        JOptionPane.INFORMATION_MESSAGE
+                    );
+
+                    if (resposta == JOptionPane.YES_OPTION) {
+                        abrirArquivo (arquivoFinal);
+                    }
+                });
         } 
         
         catch (IOException e) {
@@ -321,7 +337,26 @@ public class TelaCliente extends JFrame {
         }
     }
         
-    
+    private void abrirArquivo (File arquivo) {
+        try {
+            
+            // Desktop.open() abre o arquivo com o programa padrão do sistema
+            // PDF → abre no Adobe/navegador
+            // DOCX → abre no Word
+            // XLSX → abre no Excel
+
+            if (java.awt.Desktop.isDesktopSupported()) {
+                java.awt.Desktop.getDesktop ().open(arquivo);
+                areaChat.append(" [Sistema]: Abrindo " + arquivo.getName() + "...\n");
+            }
+            }
+            
+            catch (IOException e) {
+
+                areaChat.append(" [Sistema]: Erro ao abrir arquivo: " + e.getMessage() + "\n");
+                areaChat.append(" Localização: " + arquivo.getAbsolutePath() + "\n");
+        }
+    }
 
     private void configurarEventos() {
 
